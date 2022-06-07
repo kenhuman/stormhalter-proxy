@@ -1,0 +1,6 @@
+.vscode
+dist
+jsver
+node_modules
+output
+test.js
