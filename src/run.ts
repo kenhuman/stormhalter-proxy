@@ -138,7 +138,7 @@ class Run {
                             const elapsedMinutes = Math.floor((elapsedTime - (elapsedHours * 3600)) / 60);
                             const elapsedSeconds = elapsedTime - (elapsedHours * 3600) - (elapsedMinutes * 60);
                             const elapsedTimeString = `${elapsedHours.toString().padStart(2, '0')}:${elapsedMinutes.toString().padStart(2, '0')}:${elapsedSeconds.toString().padStart(2, '0')}`
-                            console.log(`[${elapsedTimeString}] Experience per hour: ${expPerHour}, Total Session Experience: ${this.sessionTotalExperience}`);
+                            console.log(`[${elapsedTimeString}] Experience Per Hour: ${expPerHour.toLocaleString('en-US')} | Total Session Experience: ${this.sessionTotalExperience.toLocaleString('en-US')}`);
                         }
                         break;
                 }
