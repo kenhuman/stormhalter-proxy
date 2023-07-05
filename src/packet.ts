@@ -79,6 +79,12 @@ export enum PacketCommand {
     ServerGumpClose
 }
 
+export enum ServerState {
+    Unknown = 1,
+    Conference,
+    InGame
+}
+
 export const parseHeader = (header: Buffer): Packet => {
     if(header.length !== 5) {
         console.log('unknown header', header);

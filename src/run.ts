@@ -3,7 +3,7 @@ import "source-map-support/register.js";
 import UdpProxy, { UdpProxyOptions } from "./proxy.js";
 import { promises as fs } from "fs";
 import { join } from "path";
-import { combinePackets, Packet, PacketCommand, splitPackets } from "./packet.js";
+import { combinePackets, Packet, PacketCommand, ServerState, splitPackets } from "./packet.js";
 import Inventory from "./inventory.js";
 import dgram from 'dgram';
 
@@ -22,9 +22,14 @@ class Run {
     private experience: Map<Date, number>;
     private sessionStartTime: Date;
     private sessionTotalExperience: number;
+    private currentCharacter: string;
+    private inGame: boolean;
+    private parsingDPS: boolean;
 
     constructor(options: UdpProxyOptions) {
         this.options = options;
+        this.inGame = false;
+        this.parsingDPS = false;
     }
 
     public startProxy = (): void => {
@@ -54,7 +59,7 @@ class Run {
     private addTransforms = (): void => {
         const incomingTransform = (msg: Buffer, rinfo: dgram.RemoteInfo): Buffer => {
             const packets = splitPackets(msg);
-            // this.recordPackets(packets, 'incoming');
+            this.recordPackets(packets, 'incoming');
             this.parseIncomingPackets(packets, rinfo);
             return msg;
         }
@@ -139,6 +144,44 @@ class Run {
                             const elapsedSeconds = elapsedTime - (elapsedHours * 3600) - (elapsedMinutes * 60);
                             const elapsedTimeString = `${elapsedHours.toString().padStart(2, '0')}:${elapsedMinutes.toString().padStart(2, '0')}:${elapsedSeconds.toString().padStart(2, '0')}`
                             console.log(`[${elapsedTimeString}] Experience Per Hour: ${expPerHour.toLocaleString('en-US')} | Total Session Experience: ${this.sessionTotalExperience.toLocaleString('en-US')}`);
+                        }
+                        break;
+                    case PacketCommand.ServerAsciiMessage:
+                        const msgLength = packet.data.readUInt8(5);
+                        let msg = '';
+                        for(let i = 6; i < 6 + msgLength; i++) {
+                            msg += String.fromCharCode(packet.data.readUInt8(i));
+                        }
+                        if(!this.parsingDPS) {
+                            const startRegexp = /^(.*) \[0x[0-9A-F]+\] vs. (.*) \[0x[0-9A-F]+\]$/;
+                            const startMatch = msg.match(startRegexp);
+                            if(startMatch) {
+                                if(startMatch[1] === this.currentCharacter) {
+                                    this.parsingDPS = true;
+                                }
+                            }
+                        } else {
+                            const damageRegexp = /\t.*?\[damage: ([0-9]+)\]/
+                            const damageMatch = msg.match(damageRegexp);
+                            if(damageMatch) {
+                                const damage = parseInt(damageMatch[1]);
+                                console.log(damage);
+                                this.parsingDPS = false;
+                            }
+                        }
+                        break;
+                    case PacketCommand.ServerChangeState:
+                        const state: ServerState = packet.data.readUInt8(1);
+                        if(state === ServerState.InGame) {
+                            this.inGame = true;
+                            const charLength = packet.data.readUInt8(2);
+                            let charName = '';
+                            for(let i = 3; i < 3 + charLength; i++) {
+                                charName += String.fromCharCode(packet.data.readUInt8(i));
+                            }
+                            this.currentCharacter = charName;
+                        } else {
+                            this.inGame = false;
                         }
                         break;
                 }
