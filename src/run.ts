@@ -170,6 +170,8 @@ class Run {
                         } else {
                             const damageRegexp = /\t.*?\[damage: ([0-9]+)\]/
                             const damageMatch = msg.match(damageRegexp);
+                            const critRegexp = /\(\+(\d+)\)/
+                            const critMatch = msg.match(critRegexp);
                             if(damageMatch) {
                                 const damage = parseInt(damageMatch[1]);
                                 console.log(damage);
@@ -187,8 +189,6 @@ class Run {
                                     }
                                 }
                             }
-                            const critRegexp = /\(\+(\d+)\)/
-                            const critMatch = msg.match(critRegexp);
                             if(critMatch) {
                                 const crit = parseInt(critMatch[1]);
                                 console.log(`${crit} *** CRITICAL STRIKE ***`);
