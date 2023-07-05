@@ -171,10 +171,10 @@ class Run {
                                 console.log(damage);
                                 this.combat.set(new Date(), damage);
                                 this.sessionTotalDamage += damage;
-                                const ONE_HOUR = 60 * 60 * 1000;
+                                // const ONE_HOUR = 60 * 60 * 1000;
                                 let earliest = new Date();
                                 for(const d of this.combat.keys()) {
-                                    if(Date.now() - d.getTime() > ONE_HOUR) {
+                                    if(Date.now() - d.getTime() > 10000) {
                                         this.combat.delete(d);
                                     } else {
                                         if(d < earliest) {
