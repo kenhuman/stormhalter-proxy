@@ -20,8 +20,11 @@ class Run {
     private options: UdpProxyOptions;
     private inventory: Inventory = new Inventory();
     private experience: Map<Date, number>;
+    private combat: Map<Date, number>;
+    private combatStartTime: Date;
     private sessionStartTime: Date;
     private sessionTotalExperience: number;
+    private sessionTotalDamage: number;
     private currentCharacter: string;
     private inGame: boolean;
     private parsingDPS: boolean;
@@ -59,7 +62,7 @@ class Run {
     private addTransforms = (): void => {
         const incomingTransform = (msg: Buffer, rinfo: dgram.RemoteInfo): Buffer => {
             const packets = splitPackets(msg);
-            this.recordPackets(packets, 'incoming');
+            // this.recordPackets(packets, 'incoming');
             this.parseIncomingPackets(packets, rinfo);
             return msg;
         }
@@ -166,7 +169,31 @@ class Run {
                             if(damageMatch) {
                                 const damage = parseInt(damageMatch[1]);
                                 console.log(damage);
-                                this.parsingDPS = false;
+                                this.combat.set(new Date(), damage);
+                                this.sessionTotalDamage += damage;
+                                const ONE_HOUR = 60 * 60 * 1000;
+                                let earliest = new Date();
+                                for(const d of this.combat.keys()) {
+                                    if(Date.now() - d.getTime() > ONE_HOUR) {
+                                        this.combat.delete(d);
+                                    } else {
+                                        if(d < earliest) {
+                                            earliest = d;
+                                        }
+                                    }
+                                }
+                            let acc = 0;
+                            this.combat.forEach(v => acc += v);
+                            const timeSpan = Date.now() - earliest.getTime();
+                            const combatPerTime = acc / timeSpan;
+                            const combatPerSecond = Math.floor(combatPerTime * 1000);
+                            const elapsedTime = Math.floor((Date.now() - this.combatStartTime.getTime()) / 1000);
+                            const elapsedHours = Math.floor(elapsedTime / 3600);
+                            const elapsedMinutes = Math.floor((elapsedTime - (elapsedHours * 3600)) / 60);
+                            const elapsedSeconds = elapsedTime - (elapsedHours * 3600) - (elapsedMinutes * 60);
+                            const elapsedTimeString = `${elapsedHours.toString().padStart(2, '0')}:${elapsedMinutes.toString().padStart(2, '0')}:${elapsedSeconds.toString().padStart(2, '0')}`
+                            console.log(`[${elapsedTimeString}] DPS: ${combatPerSecond.toLocaleString('en-US')} | Total Damage: ${this.sessionTotalDamage.toLocaleString('en-US')}`);
+                            this.parsingDPS = false;
                             }
                         }
                         break;
@@ -196,8 +223,11 @@ class Run {
                 switch(dataType) {
                     case PacketCommand.ClientPlayRequest:
                         this.sessionStartTime = new Date();
+                        this.combatStartTime = new Date();
                         this.experience = new Map<Date, number>();
+                        this.combat = new Map<Date, number>();
                         this.sessionTotalExperience = 0;
+                        this.sessionTotalDamage = 0;
                         break;
                 }
             }
