@@ -186,6 +186,7 @@ class Run {
                                         }
                                     }
                                 }
+                            }
                             const critRegexp = /\(\+(\d+)\)/
                             const critMatch = msg.match(critRegexp);
                             if(critMatch) {
@@ -204,7 +205,6 @@ class Run {
                                         }
                                     }
                                 }
-                            }
                             let acc = 0;
                             this.combat.forEach(v => acc += v);
                             this.critical.forEach(v => acc += v);
