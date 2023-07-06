@@ -1,5 +1,3 @@
-import "source-map-support/register.js";
-
 import UdpProxy, { UdpProxyOptions } from "./proxy.js";
 import { promises as fs } from "fs";
 import { join } from "path";
@@ -21,10 +19,14 @@ class Run {
     private inventory: Inventory = new Inventory();
     private experience: Map<Date, number>;
     private combat: Map<Date, number>;
+    private critical: Map<Date, number>;
     private combatStartTime: Date;
+    // private criticalStartTime: Date;
     private sessionStartTime: Date;
     private sessionTotalExperience: number;
-    private sessionTotalDamage: number;
+    // private sessionTotalDamage: number;
+    private sessionTotalCombat: number;
+    private sessionTotalCritical: number;
     private currentCharacter: string;
     private inGame: boolean;
     private parsingDPS: boolean;
@@ -155,6 +157,10 @@ class Run {
                         for(let i = 6; i < 6 + msgLength; i++) {
                             msg += String.fromCharCode(packet.data.readUInt8(i));
                         }
+
+                        let earliest = new Date();
+                        let displayDpsMsg = false;
+
                         if(!this.parsingDPS) {
                             const startRegexp = /^(.*) \[0x[0-9A-F]+\] vs. (.*) \[0x[0-9A-F]+\]$/;
                             const startMatch = msg.match(startRegexp);
@@ -166,13 +172,13 @@ class Run {
                         } else {
                             const damageRegexp = /\t.*?\[damage: ([0-9]+)\]/
                             const damageMatch = msg.match(damageRegexp);
+                            
                             if(damageMatch) {
                                 const damage = parseInt(damageMatch[1]);
-                                console.log(damage);
+                                console.log('\x1b[36m%s\x1b[0m', `[damage: ${damage}]`);
                                 this.combat.set(new Date(), damage);
-                                this.sessionTotalDamage += damage;
+                                this.sessionTotalCombat += damage;
                                 // const ONE_HOUR = 60 * 60 * 1000;
-                                let earliest = new Date();
                                 for(const d of this.combat.keys()) {
                                     if(Date.now() - d.getTime() > 10000) {
                                         this.combat.delete(d);
@@ -182,20 +188,48 @@ class Run {
                                         }
                                     }
                                 }
+                                this.parsingDPS = false;
+                                displayDpsMsg = true;
+                            }                            
+                        }
+
+                        const critRegexp = /\(\+(\d+)\)/
+                        const critMatch = msg.match(critRegexp);
+
+                        if(critMatch) {
+                            const crit = parseInt(critMatch[1]);
+                            console.log('\x1b[33m%s\x1b[0m', `** CRITICAL STRIKE ** (+${crit})`);
+                            this.critical.set(new Date(), crit);
+                            this.sessionTotalCritical += crit;
+                            const ONE_HOUR = 60 * 60 * 1000;
+                            for(const d of this.critical.keys()) {
+                                if(Date.now() - d.getTime() > ONE_HOUR) {
+                                    this.critical.delete(d);
+                                } else {
+                                    if(d < earliest) {
+                                        earliest = d;
+                                    }
+                                }
+                            }
+                            displayDpsMsg = false;
+                        }
+
+                        if(displayDpsMsg) {
                             let acc = 0;
                             this.combat.forEach(v => acc += v);
+                            this.critical.forEach(v => acc += v);
                             const timeSpan = Date.now() - earliest.getTime();
                             const combatPerTime = acc / timeSpan;
                             const combatPerSecond = Math.floor(combatPerTime * 1000);
+                            const sessionTotalDamage = Math.floor(this.sessionTotalCombat + this.sessionTotalCritical);
                             const elapsedTime = Math.floor((Date.now() - this.combatStartTime.getTime()) / 1000);
                             const elapsedHours = Math.floor(elapsedTime / 3600);
                             const elapsedMinutes = Math.floor((elapsedTime - (elapsedHours * 3600)) / 60);
                             const elapsedSeconds = elapsedTime - (elapsedHours * 3600) - (elapsedMinutes * 60);
                             const elapsedTimeString = `${elapsedHours.toString().padStart(2, '0')}:${elapsedMinutes.toString().padStart(2, '0')}:${elapsedSeconds.toString().padStart(2, '0')}`
-                            console.log(`[${elapsedTimeString}] DPS: ${combatPerSecond.toLocaleString('en-US')} | Total Damage: ${this.sessionTotalDamage.toLocaleString('en-US')}`);
-                            this.parsingDPS = false;
-                            }
+                            console.log(`[${elapsedTimeString}] DPS: ${combatPerSecond.toLocaleString('en-US')} | Total Damage: ${sessionTotalDamage.toLocaleString('en-US')}`);
                         }
+
                         break;
                     case PacketCommand.ServerChangeState:
                         const state: ServerState = packet.data.readUInt8(1);
@@ -224,10 +258,14 @@ class Run {
                     case PacketCommand.ClientPlayRequest:
                         this.sessionStartTime = new Date();
                         this.combatStartTime = new Date();
+                        // this.criticalStartTime = new Date();
                         this.experience = new Map<Date, number>();
                         this.combat = new Map<Date, number>();
+                        this.critical = new Map<Date, number>();
                         this.sessionTotalExperience = 0;
-                        this.sessionTotalDamage = 0;
+                        this.sessionTotalCombat = 0;
+                        this.sessionTotalCritical = 0;
+                        // this.sessionTotalDamage = 0;
                         break;
                 }
             }
