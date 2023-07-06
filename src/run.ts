@@ -203,7 +203,7 @@ class Run {
                             this.sessionTotalCombat += crit;
                         }
 
-                        if(displayDpsMsg) {
+                        if(displayDpsMsg && this.combat.size >= 5) {
                             let acc = 0;
                             this.combat.forEach(v => acc += v);
                             this.critical.forEach(v => acc += v);
