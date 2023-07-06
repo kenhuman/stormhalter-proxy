@@ -175,7 +175,7 @@ class Run {
                             
                             if(damageMatch) {
                                 const damage = parseInt(damageMatch[1]);
-                                console.log(damage);
+                                console.log('\x1b[36m%s\x1b[0m', `[damage: ${damage}]`);
                                 this.combat.set(new Date(), damage);
                                 this.sessionTotalCombat += damage;
                                 // const ONE_HOUR = 60 * 60 * 1000;
@@ -198,12 +198,12 @@ class Run {
 
                         if(critMatch) {
                             const crit = parseInt(critMatch[1]);
-                            console.log(`${crit} *** CRITICAL STRIKE ***`);
+                            console.log('\x1b[33m%s\x1b[0m', `** CRITICAL STRIKE ** (+${crit})`);
                             this.critical.set(new Date(), crit);
                             this.sessionTotalCritical += crit;
-                            // const ONE_HOUR = 60 * 60 * 1000;
+                            const ONE_HOUR = 60 * 60 * 1000;
                             for(const d of this.critical.keys()) {
-                                if(Date.now() - d.getTime() > 10000) {
+                                if(Date.now() - d.getTime() > ONE_HOUR) {
                                     this.critical.delete(d);
                                 } else {
                                     if(d < earliest) {
@@ -211,7 +211,7 @@ class Run {
                                     }
                                 }
                             }
-                            displayDpsMsg = true;
+                            displayDpsMsg = false;
                         }
 
                         if(displayDpsMsg) {
