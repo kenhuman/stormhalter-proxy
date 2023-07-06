@@ -199,29 +199,18 @@ class Run {
                         if(critMatch) {
                             const crit = parseInt(critMatch[1]);
                             console.log('\x1b[33m%s\x1b[0m', `** CRITICAL STRIKE ** (+${crit})`);
-                            this.critical.set(new Date(), crit);
-                            this.sessionTotalCritical += crit;
-                            const ONE_HOUR = 60 * 60 * 1000;
-                            for(const d of this.critical.keys()) {
-                                if(Date.now() - d.getTime() > ONE_HOUR) {
-                                    this.critical.delete(d);
-                                } else {
-                                    if(d < earliest) {
-                                        earliest = d;
-                                    }
-                                }
-                            }
-                            displayDpsMsg = false;
+                            this.combat.set(new Date(), crit);
+                            this.sessionTotalCombat += crit;
                         }
 
-                        if(displayDpsMsg) {
+                        if(displayDpsMsg && this.combat.size >= 5) {
                             let acc = 0;
                             this.combat.forEach(v => acc += v);
                             this.critical.forEach(v => acc += v);
                             const timeSpan = Date.now() - earliest.getTime();
                             const combatPerTime = acc / timeSpan;
                             const combatPerSecond = Math.floor(combatPerTime * 1000);
-                            const sessionTotalDamage = Math.floor(this.sessionTotalCombat + this.sessionTotalCritical);
+                            const sessionTotalDamage = Math.floor(this.sessionTotalCombat);
                             const elapsedTime = Math.floor((Date.now() - this.combatStartTime.getTime()) / 1000);
                             const elapsedHours = Math.floor(elapsedTime / 3600);
                             const elapsedMinutes = Math.floor((elapsedTime - (elapsedHours * 3600)) / 60);
