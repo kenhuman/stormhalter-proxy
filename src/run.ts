@@ -1,5 +1,3 @@
-import "source-map-support/register.js";
-
 import UdpProxy, { UdpProxyOptions } from "./proxy.js";
 import { promises as fs } from "fs";
 import { join } from "path";
@@ -159,6 +157,10 @@ class Run {
                         for(let i = 6; i < 6 + msgLength; i++) {
                             msg += String.fromCharCode(packet.data.readUInt8(i));
                         }
+
+                        let earliest = new Date();
+                        let displayDpsMsg = false;
+
                         if(!this.parsingDPS) {
                             const startRegexp = /^(.*) \[0x[0-9A-F]+\] vs. (.*) \[0x[0-9A-F]+\]$/;
                             const startMatch = msg.match(startRegexp);
@@ -170,15 +172,13 @@ class Run {
                         } else {
                             const damageRegexp = /\t.*?\[damage: ([0-9]+)\]/
                             const damageMatch = msg.match(damageRegexp);
-                            const critRegexp = /\(\+(\d+)\)/
-                            const critMatch = msg.match(critRegexp);
+                            
                             if(damageMatch) {
                                 const damage = parseInt(damageMatch[1]);
                                 console.log(damage);
                                 this.combat.set(new Date(), damage);
                                 this.sessionTotalCombat += damage;
                                 // const ONE_HOUR = 60 * 60 * 1000;
-                                let earliest = new Date();
                                 for(const d of this.combat.keys()) {
                                     if(Date.now() - d.getTime() > 10000) {
                                         this.combat.delete(d);
@@ -188,23 +188,33 @@ class Run {
                                         }
                                     }
                                 }
-                            }
-                            if(critMatch) {
-                                const crit = parseInt(critMatch[1]);
-                                console.log(`${crit} *** CRITICAL STRIKE ***`);
-                                this.critical.set(new Date(), crit);
-                                this.sessionTotalCritical += crit;
-                                // const ONE_HOUR = 60 * 60 * 1000;
-                                let earliest = new Date();
-                                for(const d of this.critical.keys()) {
-                                    if(Date.now() - d.getTime() > 10000) {
-                                        this.critical.delete(d);
-                                    } else {
-                                        if(d < earliest) {
-                                            earliest = d;
-                                        }
+                                this.parsingDPS = false;
+                                displayDpsMsg = true;
+                            }                            
+                        }
+
+                        const critRegexp = /\(\+(\d+)\)/
+                        const critMatch = msg.match(critRegexp);
+
+                        if(critMatch) {
+                            const crit = parseInt(critMatch[1]);
+                            console.log(`${crit} *** CRITICAL STRIKE ***`);
+                            this.critical.set(new Date(), crit);
+                            this.sessionTotalCritical += crit;
+                            // const ONE_HOUR = 60 * 60 * 1000;
+                            for(const d of this.critical.keys()) {
+                                if(Date.now() - d.getTime() > 10000) {
+                                    this.critical.delete(d);
+                                } else {
+                                    if(d < earliest) {
+                                        earliest = d;
                                     }
                                 }
+                            }
+                            displayDpsMsg = true;
+                        }
+
+                        if(displayDpsMsg) {
                             let acc = 0;
                             this.combat.forEach(v => acc += v);
                             this.critical.forEach(v => acc += v);
@@ -218,9 +228,8 @@ class Run {
                             const elapsedSeconds = elapsedTime - (elapsedHours * 3600) - (elapsedMinutes * 60);
                             const elapsedTimeString = `${elapsedHours.toString().padStart(2, '0')}:${elapsedMinutes.toString().padStart(2, '0')}:${elapsedSeconds.toString().padStart(2, '0')}`
                             console.log(`[${elapsedTimeString}] DPS: ${combatPerSecond.toLocaleString('en-US')} | Total Damage: ${sessionTotalDamage.toLocaleString('en-US')}`);
-                            this.parsingDPS = false;
-                            }
                         }
+
                         break;
                     case PacketCommand.ServerChangeState:
                         const state: ServerState = packet.data.readUInt8(1);
