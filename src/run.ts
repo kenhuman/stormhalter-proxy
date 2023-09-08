@@ -170,11 +170,11 @@ class Run {
                                 }
                             }
                         } else {
-                            const damageRegexp = /\t.*?\[damage: ([0-9]+)\]/
+                            const damageRegexp = /\t.*?\[(spell)?(d|D)amage: ([0-9]+)\]/
                             const damageMatch = msg.match(damageRegexp);
-                            
+
                             if(damageMatch) {
-                                const damage = parseInt(damageMatch[1]);
+                                const damage = parseInt(damageMatch[3]);
                                 console.log('\x1b[36m%s\x1b[0m', `[damage: ${damage}]`);
                                 this.combat.set(new Date(), damage);
                                 this.sessionTotalCombat += damage;
