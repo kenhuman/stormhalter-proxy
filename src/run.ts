@@ -20,6 +20,7 @@ class Run {
     private experience: Map<Date, number>;
     private combat: Map<Date, number>;
     private critical: Map<Date, number>;
+    private combo: Map<Date, number>;
     private combatStartTime: Date;
     // private criticalStartTime: Date;
     private sessionStartTime: Date;
@@ -199,14 +200,43 @@ class Run {
                         if(critMatch) {
                             const crit = parseInt(critMatch[1]);
                             console.log('\x1b[33m%s\x1b[0m', `** CRITICAL STRIKE ** (+${crit})`);
-                            this.combat.set(new Date(), crit);
+                            this.critical.set(new Date(), crit);
                             this.sessionTotalCombat += crit;
+                            for(const d of this.critical.keys()) {
+                                if(Date.now() - d.getTime() > 10000) {
+                                    this.critical.delete(d);
+                                } else {
+                                    if(d < earliest) {
+                                        earliest = d;
+                                    }
+                                }
+                            }
+                        }
+
+                        const comboDamage = /You combo (.*?) for ([0-9]+)./
+                        const comboMatch = msg.match(comboDamage);
+
+                        if(comboMatch) {
+                            const combo = parseInt(comboMatch[2]);
+                            console.log('\x1b[32m%s\x1b[0m', `** COMBO DAMAGE ** (+${combo})`);
+                            this.combo.set(new Date(), combo);
+                            this.sessionTotalCombat += combo;
+                            for(const d of this.combo.keys()) {
+                                if(Date.now() - d.getTime() > 10000) {
+                                    this.combo.delete(d);
+                                } else {
+                                    if(d < earliest) {
+                                        earliest = d;
+                                    }
+                                }
+                            }
                         }
 
                         if(displayDpsMsg && this.combat.size >= 5) {
                             let acc = 0;
                             this.combat.forEach(v => acc += v);
                             this.critical.forEach(v => acc += v);
+                            this.combo.forEach(v => acc += v);
                             const timeSpan = Date.now() - earliest.getTime();
                             const combatPerTime = acc / timeSpan;
                             const combatPerSecond = Math.floor(combatPerTime * 1000);
@@ -251,6 +281,7 @@ class Run {
                         this.experience = new Map<Date, number>();
                         this.combat = new Map<Date, number>();
                         this.critical = new Map<Date, number>();
+                        this.combo = new Map<Date, number>();
                         this.sessionTotalExperience = 0;
                         this.sessionTotalCombat = 0;
                         this.sessionTotalCritical = 0;
