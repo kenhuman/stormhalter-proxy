@@ -87,7 +87,7 @@ export enum ServerState {
 
 export const parseHeader = (header: Buffer): Packet => {
     if(header.length !== 5) {
-        console.log('unknown header', header);
+        // console.log('unknown header', header);
         return null;
     }
     const result: Packet = {
@@ -119,7 +119,7 @@ export const splitPackets = (packet: Buffer): Packet[] => {
         offset += PACKET_HEADER_SIZE;
         const basePacket = parseHeader(header);
         if(!basePacket) {
-            console.error('could not read this packet:', packetBuffer);
+            // console.error('could not read this packet:', packetBuffer);
             return packets;
         }
         const data = packetBuffer.subarray(offset, offset + basePacket.size + (basePacket.unknown1 ? 1 : 0));

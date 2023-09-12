@@ -61,7 +61,7 @@ export default class Inventory {
             container.items.push(item)
         }
         this.containers.set(container.type, container);
-        console.log(`${ContainerType[container.type]} created with ${container.size} items`);
+        // console.log(`${ContainerType[container.type]} created with ${container.size} items`);
     }
 
     public handleServerContainerClear = (packet: Packet): void => {

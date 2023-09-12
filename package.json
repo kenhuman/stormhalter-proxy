@@ -13,10 +13,12 @@
   "license": "ISC",
   "type": "module",
   "dependencies": {
+    "blessed": "^0.1.81",
     "source-map-support": "^0.5.19",
     "udp-proxy": "^1.2.0"
   },
   "devDependencies": {
+    "@types/blessed": "^0.1.22",
     "@types/node": "^16.7.6",
     "@typescript-eslint/eslint-plugin": "^4.29.3",
     "@typescript-eslint/parser": "^4.29.3",

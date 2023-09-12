@@ -5,6 +5,9 @@ import { combinePackets, Packet, PacketCommand, ServerState, splitPackets } from
 import Inventory from "./inventory.js";
 import dgram from 'dgram';
 
+import blessed, { Widgets } from 'blessed';
+const { box, line, screen } = blessed;
+
 const proxyOptions: UdpProxyOptions = {
     remoteAddress: '74.208.130.140',
     remotePort: 2593,
@@ -21,33 +24,42 @@ class Run {
     private combat: Map<Date, number>;
     private critical: Map<Date, number>;
     private combo: Map<Date, number>;
-    private combatStartTime: Date;
-    // private criticalStartTime: Date;
     private sessionStartTime: Date;
     private sessionTotalExperience: number;
-    // private sessionTotalDamage: number;
     private sessionTotalCombat: number;
-    private sessionTotalCritical: number;
     private currentCharacter: string;
-    private inGame: boolean;
     private parsingDPS: boolean;
+    private inGame: boolean;
+
+    private screen: Widgets.Screen;
+    private damageBox: Widgets.BoxElement;
+    private dataLine: Widgets.LineElement;
+    private dps: number;
+    private totalDamage: number;
+    private expPerHour: number;
 
     constructor(options: UdpProxyOptions) {
         this.options = options;
-        this.inGame = false;
         this.parsingDPS = false;
+        this.inGame = false;
+        this.dps = 0;
+        this.totalDamage = 0;
+        this.expPerHour = 0;
+
+        this.createScreen();
     }
 
     public startProxy = (): void => {
         this.proxy = new UdpProxy(this.options);
         this.proxy.on('listening', (details) => {
-            console.dir(details);
+            // console.dir(details);
+            this.log('Listening ...');
         });
         this.proxy.on('bound', (details) => {
             // console.dir(details);
         });
         this.proxy.on('error', (error) => {
-            console.error(error);
+            // this.log(error);
         });
         this.proxy.on('incomingMessage', (message, remoteInfo, peer) => {
             // console.log('incoming', message, remoteInfo, peer);
@@ -56,7 +68,7 @@ class Run {
             // console.log('outgoing', message, remoteInfo);
         });
         this.proxy.on('close', (peer) => {
-            console.log('closed', peer);
+            this.log('closed');
         });
         
         this.addTransforms();
@@ -144,12 +156,8 @@ class Run {
                             const timeSpan = Date.now() - earliest.getTime();
                             const expPerTime = acc / timeSpan;
                             const expPerHour = Math.floor(expPerTime * 60 * 60 * 1000);
-                            const elapsedTime = Math.floor((Date.now() - this.sessionStartTime.getTime()) / 1000);
-                            const elapsedHours = Math.floor(elapsedTime / 3600);
-                            const elapsedMinutes = Math.floor((elapsedTime - (elapsedHours * 3600)) / 60);
-                            const elapsedSeconds = elapsedTime - (elapsedHours * 3600) - (elapsedMinutes * 60);
-                            const elapsedTimeString = `${elapsedHours.toString().padStart(2, '0')}:${elapsedMinutes.toString().padStart(2, '0')}:${elapsedSeconds.toString().padStart(2, '0')}`
-                            console.log(`[${elapsedTimeString}] Experience Per Hour: ${expPerHour.toLocaleString('en-US')} | Total Session Experience: ${this.sessionTotalExperience.toLocaleString('en-US')}`);
+                            this.expPerHour = expPerHour;
+                            this.updateDataLine();
                         }
                         break;
                     case PacketCommand.ServerAsciiMessage:
@@ -176,7 +184,7 @@ class Run {
 
                             if(damageMatch) {
                                 const damage = parseInt(damageMatch[3]);
-                                console.log('\x1b[36m%s\x1b[0m', `[damage: ${damage}]`);
+                                this.log(`{blue-fg}${damage}{/blue-fg}`);
                                 this.combat.set(new Date(), damage);
                                 this.sessionTotalCombat += damage;
                                 // const ONE_HOUR = 60 * 60 * 1000;
@@ -199,7 +207,7 @@ class Run {
 
                         if(critMatch) {
                             const crit = parseInt(critMatch[1]);
-                            console.log('\x1b[33m%s\x1b[0m', `** CRITICAL STRIKE ** (+${crit})`);
+                            this.log(`{yellow-fg}${crit}{/yellow-fg}`);
                             this.critical.set(new Date(), crit);
                             this.sessionTotalCombat += crit;
                             for(const d of this.critical.keys()) {
@@ -218,7 +226,7 @@ class Run {
 
                         if(comboMatch) {
                             const combo = parseInt(comboMatch[2]);
-                            console.log('\x1b[32m%s\x1b[0m', `** COMBO DAMAGE ** (+${combo})`);
+                            this.log(`{green-fg}${combo}{/green-fg}`);
                             this.combo.set(new Date(), combo);
                             this.sessionTotalCombat += combo;
                             for(const d of this.combo.keys()) {
@@ -241,12 +249,10 @@ class Run {
                             const combatPerTime = acc / timeSpan;
                             const combatPerSecond = Math.floor(combatPerTime * 1000);
                             const sessionTotalDamage = Math.floor(this.sessionTotalCombat);
-                            const elapsedTime = Math.floor((Date.now() - this.combatStartTime.getTime()) / 1000);
-                            const elapsedHours = Math.floor(elapsedTime / 3600);
-                            const elapsedMinutes = Math.floor((elapsedTime - (elapsedHours * 3600)) / 60);
-                            const elapsedSeconds = elapsedTime - (elapsedHours * 3600) - (elapsedMinutes * 60);
-                            const elapsedTimeString = `${elapsedHours.toString().padStart(2, '0')}:${elapsedMinutes.toString().padStart(2, '0')}:${elapsedSeconds.toString().padStart(2, '0')}`
-                            console.log(`[${elapsedTimeString}] DPS: ${combatPerSecond.toLocaleString('en-US')} | Total Damage: ${sessionTotalDamage.toLocaleString('en-US')}`);
+                            this.dps = combatPerSecond;
+                            this.totalDamage = sessionTotalDamage;
+                            this.updateDataLine();
+                            
                         }
 
                         break;
@@ -276,20 +282,92 @@ class Run {
                 switch(dataType) {
                     case PacketCommand.ClientPlayRequest:
                         this.sessionStartTime = new Date();
-                        this.combatStartTime = new Date();
-                        // this.criticalStartTime = new Date();
                         this.experience = new Map<Date, number>();
                         this.combat = new Map<Date, number>();
                         this.critical = new Map<Date, number>();
                         this.combo = new Map<Date, number>();
                         this.sessionTotalExperience = 0;
                         this.sessionTotalCombat = 0;
-                        this.sessionTotalCritical = 0;
-                        // this.sessionTotalDamage = 0;
                         break;
                 }
             }
         }
+    }
+
+    private createScreen = (): void => {
+        this.screen = screen({
+            smartCSR: true,
+            title: 'Stormhalter Packet Parser'
+        });
+
+        this.damageBox = box({
+            top: 0,
+            left: 'center',
+            width: '75%',
+            height: '50%',
+            tags: true,
+            border: {
+                type: 'line'
+            },
+            style: {
+                fg: 'white',
+                bg: 'black',
+                border: {
+                    fg: '#f0f0f0'
+                },
+                hover: {
+                    bg: 'green'
+                }
+            },
+            scrollable: true,
+            alwaysScroll: true
+        });
+
+        this.screen.append(this.damageBox);
+
+        this.dataLine = box({
+            top: '50%',
+            left: 'center',
+            width: '75%',
+            height: 3,
+            tags: true,
+            border: {
+                type: 'line'
+            },
+            style: {
+                fg: 'white',
+                bg: 'black',
+                border: {
+                    fg: '#f0f0f0'
+                }
+            }
+        });
+
+        this.screen.append(this.dataLine);
+
+        this.screen.key(['escape', 'q', 'C-c'], (ch, key): void => {
+            return process.exit(0);
+        });
+
+        // this.updateDataLine();
+        this.screen.render();
+    }
+
+    private updateDataLine = (): void => {
+        const elapsedTime = Math.floor((Date.now() - this.sessionStartTime.getTime()) / 1000);
+        const elapsedHours = Math.floor(elapsedTime / 3600);
+        const elapsedMinutes = Math.floor((elapsedTime - (elapsedHours * 3600)) / 60);
+        const elapsedSeconds = elapsedTime - (elapsedHours * 3600) - (elapsedMinutes * 60);
+        const elapsedTimeString = `${elapsedHours.toString().padStart(2, '0')}:${elapsedMinutes.toString().padStart(2, '0')}:${elapsedSeconds.toString().padStart(2, '0')}`
+
+        this.dataLine.setLine(0, `[${elapsedTimeString}]\tEXP/Hr: ${this.expPerHour.toLocaleString('en-US')}\tEXP Total: ${this.sessionTotalExperience.toLocaleString('en-US')}\tDPS: ${this.dps.toLocaleString('en-US')}\tDamage Total: ${this.totalDamage.toLocaleString('en-US')}`);
+        // this.screen.render();
+    }
+
+    public log = (text: string): void => {
+        this.damageBox.pushLine(text);
+        this.damageBox.setScrollPerc(100);
+        this.screen.render();
     }
 }
 
