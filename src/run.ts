@@ -6,7 +6,7 @@ import Inventory from "./inventory.js";
 import dgram from 'dgram';
 
 import blessed, { Widgets } from 'blessed';
-const { box, line, screen } = blessed;
+const { box, checkbox, screen } = blessed;
 
 const proxyOptions: UdpProxyOptions = {
     remoteAddress: '74.208.130.140',
@@ -28,15 +28,23 @@ class Run {
     private sessionTotalExperience: number;
     private sessionTotalCombat: number;
     private currentCharacter: string;
+    private currentTarget: string;
     private parsingDPS: boolean;
     private inGame: boolean;
 
     private screen: Widgets.Screen;
     private damageBox: Widgets.BoxElement;
-    private dataLine: Widgets.LineElement;
+    private topLine: Widgets.BoxElement;
+    private dataLine: Widgets.BoxElement;
+    private incomingPacketRecord: Widgets.CheckboxElement;
+    private outgoingPacketRecord: Widgets.CheckboxElement;
+
     private dps: number;
     private totalDamage: number;
     private expPerHour: number;
+
+    private incomingPacketRecordingStatus: boolean;
+    private outgoingPacketRecordingStatus: boolean;
 
     constructor(options: UdpProxyOptions) {
         this.options = options;
@@ -45,6 +53,8 @@ class Run {
         this.dps = 0;
         this.totalDamage = 0;
         this.expPerHour = 0;
+        this.incomingPacketRecordingStatus = false;
+        this.outgoingPacketRecordingStatus = false;
 
         this.createScreen();
     }
@@ -59,7 +69,7 @@ class Run {
             // console.dir(details);
         });
         this.proxy.on('error', (error) => {
-            // this.log(error);
+            this.log(JSON.stringify(error));
         });
         this.proxy.on('incomingMessage', (message, remoteInfo, peer) => {
             // console.log('incoming', message, remoteInfo, peer);
@@ -77,7 +87,9 @@ class Run {
     private addTransforms = (): void => {
         const incomingTransform = (msg: Buffer, rinfo: dgram.RemoteInfo): Buffer => {
             const packets = splitPackets(msg);
-            // this.recordPackets(packets, 'incoming');
+            if(this.incomingPacketRecordingStatus) {
+                this.recordPackets(packets, 'incoming');
+            }
             this.parseIncomingPackets(packets, rinfo);
             return msg;
         }
@@ -85,7 +97,9 @@ class Run {
         const outgoingTransform = (msg: Buffer, rinfo: dgram.RemoteInfo): Buffer => {
             const packets = splitPackets(msg);
             this.transformOutgoingPackets(packets, rinfo);
-            // this.recordPackets(packets, 'outgoing');
+            if(this.outgoingPacketRecordingStatus) {
+                this.recordPackets(packets, 'outgoing');
+            }
             msg = combinePackets(packets);
             return msg;
         }
@@ -176,6 +190,8 @@ class Run {
                             if(startMatch) {
                                 if(startMatch[1] === this.currentCharacter) {
                                     this.parsingDPS = true;
+                                    this.currentTarget = startMatch[2];
+                                    this.topLine.setLine(0, `${this.currentCharacter} vs. ${this.currentTarget}`);
                                 }
                             }
                         } else {
@@ -184,7 +200,7 @@ class Run {
 
                             if(damageMatch) {
                                 const damage = parseInt(damageMatch[3]);
-                                this.log(`{blue-fg}${damage}{/blue-fg}`);
+                                this.log(`You ${damageMatch[1] ? 'cast on' : 'hit'} ${this.currentTarget} for {blue-fg}${damage}{/blue-fg}`);
                                 this.combat.set(new Date(), damage);
                                 this.sessionTotalCombat += damage;
                                 // const ONE_HOUR = 60 * 60 * 1000;
@@ -207,7 +223,7 @@ class Run {
 
                         if(critMatch) {
                             const crit = parseInt(critMatch[1]);
-                            this.log(`{yellow-fg}${crit}{/yellow-fg}`);
+                            this.log(`You crit ${this.currentTarget} for {yellow-fg}${crit}{/yellow-fg}`);
                             this.critical.set(new Date(), crit);
                             this.sessionTotalCombat += crit;
                             for(const d of this.critical.keys()) {
@@ -226,7 +242,7 @@ class Run {
 
                         if(comboMatch) {
                             const combo = parseInt(comboMatch[2]);
-                            this.log(`{green-fg}${combo}{/green-fg}`);
+                            this.log(`You combo ${comboMatch[1]} for {green-fg}${combo}{/green-fg}`);
                             this.combo.set(new Date(), combo);
                             this.sessionTotalCombat += combo;
                             for(const d of this.combo.keys()) {
@@ -300,33 +316,9 @@ class Run {
             title: 'Stormhalter Packet Parser'
         });
 
-        this.damageBox = box({
+        this.topLine = box({
+            parent: this.screen,
             top: 0,
-            left: 'center',
-            width: '75%',
-            height: '50%',
-            tags: true,
-            border: {
-                type: 'line'
-            },
-            style: {
-                fg: 'white',
-                bg: 'black',
-                border: {
-                    fg: '#f0f0f0'
-                },
-                hover: {
-                    bg: 'green'
-                }
-            },
-            scrollable: true,
-            alwaysScroll: true
-        });
-
-        this.screen.append(this.damageBox);
-
-        this.dataLine = box({
-            top: '50%',
             left: 'center',
             width: '75%',
             height: 3,
@@ -343,14 +335,78 @@ class Run {
             }
         });
 
-        this.screen.append(this.dataLine);
+        this.damageBox = box({
+            parent: this.screen,
+            top: 3,
+            left: 'center',
+            width: '75%',
+            height: 20,
+            tags: true,
+            border: {
+                type: 'line'
+            },
+            style: {
+                fg: 'white',
+                bg: 'black',
+                border: {
+                    fg: '#f0f0f0'
+                }
+            },
+            scrollable: true,
+            alwaysScroll: true
+        });
+
+        this.dataLine = box({
+            parent: this.screen,
+            top: 23,
+            left: 'center',
+            width: '75%',
+            height: 3,
+            tags: true,
+            border: {
+                type: 'line'
+            },
+            style: {
+                fg: 'white',
+                bg: 'black',
+                border: {
+                    fg: '#f0f0f0'
+                }
+            }
+        });
+
+        this.incomingPacketRecord = checkbox({
+            parent: this.screen,
+            top: 26,
+            left: 'center',
+            mouse: true,
+            keys: true,
+            checked: false,
+            content: 'Record Incoming Packets'
+        });
+
+        this.incomingPacketRecord.on('check', () => this.incomingPacketRecordingStatus = true);
+        this.incomingPacketRecord.on('uncheck', () => this.incomingPacketRecordingStatus = false);
+
+        this.outgoingPacketRecord = checkbox({
+            parent: this.screen,
+            top: 27,
+            left: 'center',
+            mouse: true,
+            keys: true,
+            checked: false,
+            content: 'Record Outgoing Packets'
+        });
+
+        this.outgoingPacketRecord.on('check', () => this.outgoingPacketRecordingStatus = true);
+        this.outgoingPacketRecord.on('uncheck', () => this.outgoingPacketRecordingStatus = false);
 
         this.screen.key(['escape', 'q', 'C-c'], (ch, key): void => {
             return process.exit(0);
         });
 
-        // this.updateDataLine();
         this.screen.render();
+        // this.updateDataLine();
     }
 
     private updateDataLine = (): void => {
@@ -361,7 +417,7 @@ class Run {
         const elapsedTimeString = `${elapsedHours.toString().padStart(2, '0')}:${elapsedMinutes.toString().padStart(2, '0')}:${elapsedSeconds.toString().padStart(2, '0')}`
 
         this.dataLine.setLine(0, `[${elapsedTimeString}]\tEXP/Hr: ${this.expPerHour.toLocaleString('en-US')}\tEXP Total: ${this.sessionTotalExperience.toLocaleString('en-US')}\tDPS: ${this.dps.toLocaleString('en-US')}\tDamage Total: ${this.totalDamage.toLocaleString('en-US')}`);
-        // this.screen.render();
+        this.screen.render();
     }
 
     public log = (text: string): void => {
