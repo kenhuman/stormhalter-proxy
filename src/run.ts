@@ -43,6 +43,14 @@ class Run {
     private totalDamage: number;
     private expPerHour: number;
 
+    private currentCharacterAR: number;
+    private currentTargetDR: number;
+    private currentCharacterDR: number;
+    private currentTargetAR: number;
+    private currentCharacterId: string;
+    private currentTargetId: string;
+    private currentTargetAttacking: boolean;
+
     private incomingPacketRecordingStatus: boolean;
     private outgoingPacketRecordingStatus: boolean;
 
@@ -55,6 +63,7 @@ class Run {
         this.expPerHour = 0;
         this.incomingPacketRecordingStatus = false;
         this.outgoingPacketRecordingStatus = false;
+        this.currentTargetAttacking = false;
 
         this.createScreen();
     }
@@ -184,14 +193,32 @@ class Run {
                         let earliest = new Date();
                         let displayDpsMsg = false;
 
+                        const getDRAR = (): [number, number] => {
+                            const drarRegexp = /\t\[DR: ([0-9]+)\] vs \[AR: ([0-9]+)\]/;
+                            const drarMatch = msg.match(drarRegexp);
+
+                            if(drarMatch) {
+                                return [+drarMatch[1], +drarMatch[2]];
+                            }
+
+                            return null;
+                        }
+
                         if(!this.parsingDPS) {
-                            const startRegexp = /^(.*) \[0x[0-9A-F]+\] vs. (.*) \[0x[0-9A-F]+\]$/;
+                            const startRegexp = /^(.*) \[(0x[0-9A-F]+)\] vs. (.*) \[(0x[0-9A-F]+)\]$/;
                             const startMatch = msg.match(startRegexp);
                             if(startMatch) {
                                 if(startMatch[1] === this.currentCharacter) {
                                     this.parsingDPS = true;
-                                    this.currentTarget = startMatch[2];
-                                    this.topLine.setLine(0, `${this.currentCharacter} vs. ${this.currentTarget}`);
+                                    this.currentCharacterId = startMatch[2];
+                                    this.currentTarget = startMatch[3];
+                                    if(this.currentTargetId !== startMatch[4]) {
+                                        this.currentTargetAR = null;
+                                        this.currentTargetDR = null;
+                                    }
+                                    this.currentTargetId = startMatch[4];
+                                } else if(startMatch[2] === this.currentTargetId) {
+                                    this.currentTargetAttacking = true;
                                 }
                             }
                         } else {
@@ -215,6 +242,23 @@ class Run {
                                 }
                                 this.parsingDPS = false;
                                 displayDpsMsg = true;
+                            } else {
+                                const ardr = getDRAR();
+                                if(ardr) {
+                                    this.currentTargetDR = ardr[0];
+                                    this.currentCharacterAR = ardr[1];
+                                    this.updateTopLine();
+                                }
+                            }
+                        }
+
+                        if(this.currentTargetAttacking) {
+                            const ardr = getDRAR();
+                            if(ardr) {
+                                this.currentCharacterDR = ardr[0];
+                                this.currentTargetAR = ardr[1];
+                                this.updateTopLine();
+                                this.currentTargetAttacking = false;
                             }                            
                         }
 
@@ -267,8 +311,7 @@ class Run {
                             const sessionTotalDamage = Math.floor(this.sessionTotalCombat);
                             this.dps = combatPerSecond;
                             this.totalDamage = sessionTotalDamage;
-                            this.updateDataLine();
-                            
+                            this.updateDataLine();                            
                         }
 
                         break;
@@ -282,6 +325,7 @@ class Run {
                                 charName += String.fromCharCode(packet.data.readUInt8(i));
                             }
                             this.currentCharacter = charName;
+                            this.updateTopLine();
                         } else {
                             this.inGame = false;
                         }
@@ -321,7 +365,7 @@ class Run {
             top: 0,
             left: 'center',
             width: '75%',
-            height: 3,
+            height: 4,
             tags: true,
             border: {
                 type: 'line'
@@ -337,7 +381,7 @@ class Run {
 
         this.damageBox = box({
             parent: this.screen,
-            top: 3,
+            top: 4,
             left: 'center',
             width: '75%',
             height: 20,
@@ -358,7 +402,7 @@ class Run {
 
         this.dataLine = box({
             parent: this.screen,
-            top: 23,
+            top: 24,
             left: 'center',
             width: '75%',
             height: 3,
@@ -377,7 +421,7 @@ class Run {
 
         this.incomingPacketRecord = checkbox({
             parent: this.screen,
-            top: 26,
+            top: 27,
             left: 'center',
             mouse: true,
             keys: true,
@@ -390,7 +434,7 @@ class Run {
 
         this.outgoingPacketRecord = checkbox({
             parent: this.screen,
-            top: 27,
+            top: 28,
             left: 'center',
             mouse: true,
             keys: true,
@@ -427,6 +471,55 @@ class Run {
         const elapsedTimeString = `${elapsedHours.toString().padStart(2, '0')}:${elapsedMinutes.toString().padStart(2, '0')}:${elapsedSeconds.toString().padStart(2, '0')}`
 
         this.dataLine.setLine(0, `[${elapsedTimeString}]\tEXP/Hr: ${this.expPerHour.toLocaleString('en-US')}\tEXP Total: ${this.sessionTotalExperience.toLocaleString('en-US')}\tDPS: ${this.dps.toLocaleString('en-US')}\tDamage Total: ${this.totalDamage.toLocaleString('en-US')}`);
+        this.screen.render();
+    }
+
+    private updateTopLine = (): void => {
+        let topLineString = `${this.currentCharacter}`;
+        if(this.currentCharacterId) {
+            topLineString += ` (${this.currentCharacterId})`;
+        }
+        if(this.currentCharacterAR) {
+            topLineString += ` [AR: ${this.currentCharacterAR}`;
+            if(this.currentCharacterDR) {
+                topLineString += ` DR: ${this.currentCharacterDR}`;
+            }
+            topLineString += ']';
+        }
+        if(this.currentTarget) {
+            topLineString += ` vs. ${this.currentTarget}`;
+            if(this.currentTargetId) {
+                topLineString += ` (${this.currentTargetId})`;
+            }
+            if(this.currentTargetAR) {
+                topLineString += ` [AR: ${this.currentTargetAR}`;
+                if(this.currentTargetDR) {
+                    topLineString += ` DR: ${this.currentTargetDR}`;
+                }
+                topLineString += ']';
+            }
+        }
+
+        let topLineString2 = '';
+        if(this.currentCharacterAR && this.currentTargetDR) {
+            const hitChanceRaw = 100 - ((this.currentTargetDR - this.currentCharacterAR) / 10);
+            const hitChance = hitChanceRaw < 5 ? '5%' : hitChanceRaw > 95 ? '95%' : `${hitChanceRaw.toFixed(2)}%`;
+
+            const critChanceRaw = (this.currentCharacterAR - this.currentTargetDR) / 200;
+            const critChanceRaw2 = 5 + critChanceRaw;
+            const critChance = critChanceRaw2 <= 0 ? '0%' : `${critChanceRaw2.toFixed(2)}%`;
+
+            topLineString2 += `{blue-fg}[Hit Chance: ${hitChance}]{/blue-fg} {yellow-fg}[Crit Chance: ${critChance}]{/yellow-fg}`
+        }
+        if(this.currentCharacterDR && this.currentTargetAR) {
+            const blockChanceRaw = (this.currentCharacterDR - this.currentTargetAR) / 10;
+            const blockChance = `${(100 - (blockChanceRaw <= 5 ? 95 : blockChanceRaw >= 95 ? 5 : blockChanceRaw)).toFixed(2)}%`;
+
+            topLineString2 += ` {green-fg}[Block Chance: ${blockChance}]{/green-fg}`
+        }        
+
+        this.topLine.setLine(0, topLineString);
+        this.topLine.setLine(1, topLineString2);
         this.screen.render();
     }
 
