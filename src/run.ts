@@ -306,7 +306,7 @@ class Run {
 
                         if(deathblowMatch) {
                             const db = parseInt(deathblowMatch[2]);
-                            this.log(`You deathblow ${deathblowMatch[1]} for {green-fg}${db}{/green=fb}`);
+                            this.log(`You deathblow ${deathblowMatch[1]} for {green-fg}${db}{/green-fg}`);
                             this.deathblow.set(new Date(), db);
                             this.sessionTotalCombat += db;
                             for(const d of this.deathblow.keys()) {
@@ -367,6 +367,7 @@ class Run {
                         this.combat = new Map<Date, number>();
                         this.critical = new Map<Date, number>();
                         this.combo = new Map<Date, number>();
+                        this.deathblow = new Map<Date, number>();
                         this.sessionTotalExperience = 0;
                         this.sessionTotalCombat = 0;
                         break;
