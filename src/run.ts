@@ -466,8 +466,18 @@ class Run {
         this.outgoingPacketRecord.on('check', () => this.outgoingPacketRecordingStatus = true);
         this.outgoingPacketRecord.on('uncheck', () => this.outgoingPacketRecordingStatus = false);
 
-        this.screen.key(['escape', 'q', 'C-c'], (ch, key): void => {
+        this.screen.key(['escape', 'q', 'C-c'], (): void => {
             return process.exit(0);
+        });
+
+        this.screen.key('z', () => {
+            this.incomingPacketRecord.toggle();
+            this.screen.render();
+        });
+
+        this.screen.key('x', () => {
+            this.outgoingPacketRecord.toggle();
+            this.screen.render();
         });
 
         this.screen.render();
