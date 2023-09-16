@@ -24,6 +24,7 @@ class Run {
     private combat: Map<Date, number>;
     private critical: Map<Date, number>;
     private combo: Map<Date, number>;
+    private deathblow: Map<Date, number>;
     private sessionStartTime: Date;
     private sessionTotalExperience: number;
     private sessionTotalCombat: number;
@@ -281,8 +282,8 @@ class Run {
                             }
                         }
 
-                        const comboDamage = /You combo (.*?) for ([0-9]+)./
-                        const comboMatch = msg.match(comboDamage);
+                        const comboRegexp = /You combo (.*?) for ([0-9]+)./
+                        const comboMatch = msg.match(comboRegexp);
 
                         if(comboMatch) {
                             const combo = parseInt(comboMatch[2]);
@@ -300,11 +301,31 @@ class Run {
                             }
                         }
 
+                        const deathblowRegexp = /You perform a deathblow on (.*?) for ([0-9]+)./
+                        const deathblowMatch = msg.match(deathblowRegexp);
+
+                        if(deathblowMatch) {
+                            const db = parseInt(deathblowMatch[2]);
+                            this.log(`You deathblow ${deathblowMatch[1]} for {green-fg}${db}{/green=fb}`);
+                            this.deathblow.set(new Date(), db);
+                            this.sessionTotalCombat += db;
+                            for(const d of this.deathblow.keys()) {
+                                if(Date.now() - d.getTime() > 10000) {
+                                    this.deathblow.delete(d);
+                                } else {
+                                    if(d < earliest) {
+                                        earliest = d;
+                                    }
+                                }
+                            }
+                        }
+
                         if(displayDpsMsg && this.combat.size >= 5) {
                             let acc = 0;
                             this.combat.forEach(v => acc += v);
                             this.critical.forEach(v => acc += v);
                             this.combo.forEach(v => acc += v);
+                            this.deathblow.forEach(v => acc += v);
                             const timeSpan = Date.now() - earliest.getTime();
                             const combatPerTime = acc / timeSpan;
                             const combatPerSecond = Math.floor(combatPerTime * 1000);
