@@ -25,6 +25,8 @@ class Run {
     private critical: Map<Date, number>;
     private combo: Map<Date, number>;
     private deathblow: Map<Date, number>;
+    private darkness: Map<Date, number>;
+    private aftershock: Map<Date, number>;
     private sessionStartTime: Date;
     private sessionTotalExperience: number;
     private sessionTotalCombat: number;
@@ -320,12 +322,52 @@ class Run {
                             }
                         }
 
+                        const darknessRegexp = /You shoot in the darkness hitting (.*?) for ([0-9]+)./
+                        const darknessMatch = msg.match(darknessRegexp);
+
+                        if(darknessMatch) {
+                            const darkness = parseInt(darknessMatch[2]);
+                            this.log(`You shoot in the darkness ${darknessMatch[1]} for {green-fg}${darkness}{/green-fg}`);
+                            this.darkness.set(new Date(), darkness);
+                            this.sessionTotalCombat += darkness;
+                            for(const d of this.darkness.keys()) {
+                                if(Date.now() - d.getTime() > 10000) {
+                                    this.darkness.delete(d);
+                                } else {
+                                    if(d < earliest) {
+                                        earliest = d;
+                                    }
+                                }
+                            }
+                        }
+
+                        const aftershockRegexp = /You punch the ground and it erupts with an aftershock. ([0-9]+) crits were hit for ([0-9]+) for ([0-9]+) a piece./
+                        const aftershockMatch = msg.match(aftershockRegexp);
+
+                        if(aftershockMatch) {
+                            const aftershock = parseInt(aftershockMatch[2]);
+                            this.log(`You hit ${aftershockMatch[1]} crits with aftershock for {green-fg}${aftershock}{/green-fg}`);
+                            this.aftershock.set(new Date(), aftershock);
+                            this.sessionTotalCombat += aftershock;
+                            for(const d of this.aftershock.keys()) {
+                                if(Date.now() - d.getTime() > 10000) {
+                                    this.aftershock.delete(d);
+                                } else {
+                                    if(d < earliest) {
+                                        earliest = d;
+                                    }
+                                }
+                            }
+                        }
+
                         if(displayDpsMsg && this.combat.size >= 5) {
                             let acc = 0;
                             this.combat.forEach(v => acc += v);
                             this.critical.forEach(v => acc += v);
                             this.combo.forEach(v => acc += v);
                             this.deathblow.forEach(v => acc += v);
+                            this.darkness.forEach(v => acc += v);
+                            this.aftershock.forEach(v => acc += v);
                             const timeSpan = Date.now() - earliest.getTime();
                             const combatPerTime = acc / timeSpan;
                             const combatPerSecond = Math.floor(combatPerTime * 1000);
@@ -368,6 +410,8 @@ class Run {
                         this.critical = new Map<Date, number>();
                         this.combo = new Map<Date, number>();
                         this.deathblow = new Map<Date, number>();
+                        this.darkness = new Map<Date, number>();
+                        this.aftershock = new Map<Date, number>();
                         this.sessionTotalExperience = 0;
                         this.sessionTotalCombat = 0;
                         break;
@@ -553,6 +597,9 @@ class Run {
 }
 
 (async () => {
+    if(process.argv[2] && process.argv[2] === '-t') {
+        proxyOptions.remoteAddress = '74.208.160.90'
+    }
     const run = new Run(proxyOptions);
     run.startProxy();
 })().catch((err) => console.error(err));
