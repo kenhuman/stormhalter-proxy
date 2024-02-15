@@ -69,14 +69,19 @@ export enum PacketCommand {
     ServerSpeechMessage,
     ServerLocalizedSpeechMessage,
     ServerLocalizedMantraMessage,
+    ServerCommunicationMessage,
+    ServerLocalizedCommunicationMessage,
     ServerMessageBox = 160,
     ClientExitRequest = 199,
     ServerChangeState,
     ServerPlaySound,
-    ServerGumpShow = 210,
+    ServerLocalizedGumpShow = 209,
+    ServerGumpShow,
     ClientGumpResponse,
     ClientGumpClose,
-    ServerGumpClose
+    ServerGumpClose,
+    ServerGumpUpdateProperty,
+    ServerGumpUpdateLayout
 }
 
 export enum ServerState {

@@ -155,8 +155,48 @@ class Run {
                     case PacketCommand.ServerContainerUpdate:
                         this.inventory.handleServerContainerUpdate(packet);
                         break;
+                    case PacketCommand.ServerLocalizedCommunicationMessage:
+                        const idx = packet.data.readUInt32LE(3);
+                        const variableCount = packet.data.readUInt8(7);
+                        const variables: string[] = [];
+                        let offset = 7;
+                        for(let i = 0; i < variableCount; i++) {
+                            offset++;
+                            const variableLength = packet.data.readUInt8(offset);
+                            let buf = '';
+                            for(let j = 1; j <= variableLength; j++) {
+                                buf += String.fromCharCode(packet.data.readUInt8(offset + j));
+                            }
+                            variables.push(buf);
+                            offset += variableLength;
+                        }
+                        if(idx === 6300080) {
+                            const exp = +variables[0];
+                            this.experience.set(new Date(), exp);
+                            this.sessionTotalExperience += exp;
+                            const ONE_HOUR = 60 * 60 * 1000;
+                            let earliest = new Date();
+                            for(const d of this.experience.keys()) {
+                                if(Date.now() - d.getTime() > ONE_HOUR) {
+                                    this.experience.delete(d);
+                                } else {
+                                    if(d < earliest) {
+                                        earliest = d;
+                                    }
+                                }
+                            }
+                            let acc = 0;
+                            this.experience.forEach(v => acc += v);
+                            const timeSpan = Date.now() - earliest.getTime();
+                            const expPerTime = acc / timeSpan;
+                            const expPerHour = Math.floor(expPerTime * 60 * 60 * 1000);
+                            this.expPerHour = expPerHour;
+                            this.updateDataLine();
+                        }
+                        break;
                     case PacketCommand.ServerLocalizedAsciiMessage:
-                        const idx = packet.data.readUInt32LE(6);
+                        break;  // check ServerLocalizedCommunicationMessage for exp
+                        // const idx = packet.data.readUInt32LE(6);
                         if(idx === 6300080) {
                             const expLength = packet.data.readUInt8(11);
                             let expStr = '';
@@ -187,6 +227,7 @@ class Run {
                         }
                         break;
                     case PacketCommand.ServerAsciiMessage:
+                        break;  // Not getting this info anymore
                         const msgLength = packet.data.readUInt8(5);
                         let msg = '';
                         for(let i = 6; i < 6 + msgLength; i++) {
