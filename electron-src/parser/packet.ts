@@ -1,6 +1,7 @@
-import { Int8, Int16 } from "types";
+import { Int8, Int16 } from './types';
+import { debug } from './sendMessage';
 
-export interface Packet {
+interface IPacket {
     type: Int8;
     counter: Int16;
     fragment: boolean;
@@ -10,6 +11,8 @@ export interface Packet {
     unknown3: boolean;
     data?: Buffer;
 }
+
+export type Packet = IPacket | null;
 
 const PACKET_HEADER_SIZE = 0x5;
 
@@ -81,65 +84,81 @@ export enum PacketCommand {
     ClientGumpClose,
     ServerGumpClose,
     ServerGumpUpdateProperty,
-    ServerGumpUpdateLayout
+    ServerGumpUpdateLayout,
 }
 
 export enum ServerState {
     Unknown = 1,
     Conference,
-    InGame
+    InGame,
 }
 
 export const parseHeader = (header: Buffer): Packet => {
-    if(header.length !== 5) {
-        // console.log('unknown header', header);
+    if (header.length !== 5) {
+        debug(`unknown header: ${header}`);
         return null;
     }
     const result: Packet = {
-        type:       header.readUInt8(0),
-        counter:    header.readUInt16LE(1) >> 1,
-        fragment:   !!(header.readUInt16LE(1) & 0x1),
-        size:       header.readUInt16LE(3) >> 3,
-        unknown1:   !!(header.readUInt16LE(3) & 0x1),
-        unknown2:   !!(header.readUInt16LE(3) >> 1 & 0x1),
-        unknown3:   !!(header.readUInt16LE(3) >> 2 & 0x1)                
-    }
+        type: header.readUInt8(0),
+        counter: header.readUInt16LE(1) >> 1,
+        fragment: !!(header.readUInt16LE(1) & 0x1),
+        size: header.readUInt16LE(3) >> 3,
+        unknown1: !!(header.readUInt16LE(3) & 0x1),
+        unknown2: !!((header.readUInt16LE(3) >> 1) & 0x1),
+        unknown3: !!((header.readUInt16LE(3) >> 2) & 0x1),
+    };
     return result;
-}
+};
 
 export const createHeader = (packet: Packet): Buffer => {
     const header = Buffer.alloc(PACKET_HEADER_SIZE);
+    if (!packet) {
+        return header;
+    }
     header.writeUInt8(packet.type, 0);
-    header.writeUInt16LE(packet.counter << 1 | +packet.fragment, 1);
-    header.writeUInt16LE(packet.size << 3 | +packet.unknown1 | +packet.unknown2 << 1 | +packet.unknown2 << 2, 3);
+    header.writeUInt16LE((packet.counter << 1) | +packet.fragment, 1);
+    header.writeUInt16LE(
+        (packet.size << 3) |
+            +packet.unknown1 |
+            (+packet.unknown2 << 1) |
+            (+packet.unknown3 << 2),
+        3,
+    );
     return header;
-}
+};
 
 export const splitPackets = (packet: Buffer): Packet[] => {
     const packetBuffer = Buffer.from(packet);
     const packets: Packet[] = [];
     let offset = 0;
-    while(offset < packetBuffer.length) {
-        const header = packetBuffer.subarray(offset, offset + PACKET_HEADER_SIZE);
+    while (offset < packetBuffer.length) {
+        const header = packetBuffer.subarray(
+            offset,
+            offset + PACKET_HEADER_SIZE,
+        );
         offset += PACKET_HEADER_SIZE;
         const basePacket = parseHeader(header);
-        if(!basePacket) {
-            // console.error('could not read this packet:', packetBuffer);
+        if (!basePacket) {
+            console.error('could not read this packet:', packetBuffer);
             return packets;
         }
-        const data = packetBuffer.subarray(offset, offset + basePacket.size + (basePacket.unknown1 ? 1 : 0));
-        offset += basePacket.size + (basePacket.unknown1 ? 1 : 0);
+        const packetDataLength =
+            basePacket.size + +basePacket.unknown1 + +basePacket.unknown2;
+        const data = packetBuffer.subarray(offset, offset + packetDataLength);
+        offset += packetDataLength;
         basePacket.data = data;
         packets.push(basePacket);
     }
     return packets;
-}
+};
 
 export const combinePackets = (packets: Packet[]): Buffer => {
     const buffers: Buffer[] = [];
-    for(const packet of packets) {
+    for (const packet of packets) {
         const header = createHeader(packet);
-        buffers.push(Buffer.concat([header, packet.data]));
+        if (packet?.data) {
+            buffers.push(Buffer.concat([header, packet.data]));
+        }
     }
     return Buffer.concat(buffers);
-}
+};
