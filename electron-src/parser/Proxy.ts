@@ -38,23 +38,33 @@ export default class Proxy {
             msg: Buffer,
             rinfo: dgram.RemoteInfo,
         ): Buffer => {
-            const packets = splitPackets(msg);
-            for (const parser of this.parsers) {
-                parser(packets, rinfo);
+            try {
+                const packets = splitPackets(msg);
+                for (const parser of this.parsers) {
+                    parser(packets, rinfo);
+                }
+            } catch(error) {
+                this.proxy.emit('error', error);
+            } finally {
+                return msg;
             }
-            return msg;
         };
 
         const outgoingTransform = (
             msg: Buffer,
             rinfo: dgram.RemoteInfo,
         ): Buffer => {
-            let packets = splitPackets(msg);
-            for (const transformer of this.transformers) {
-                packets = transformer(packets, rinfo);
-            }
-            msg = combinePackets(packets);
-            return msg;
+            try {
+                let packets = splitPackets(msg);
+                for (const transformer of this.transformers) {
+                    packets = transformer(packets, rinfo);
+                }
+                msg = combinePackets(packets);
+            } catch(error) {
+                this.proxy.emit('error', error);
+            } finally {
+                return msg;
+            }            
         };
 
         this.parsers = parsers;

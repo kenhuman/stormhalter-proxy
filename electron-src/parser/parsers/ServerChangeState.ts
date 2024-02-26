@@ -9,13 +9,13 @@ const parser: PacketParser = (packets, _rinfo): void => {
         if (packet?.data) {
             const dataType = packet.data.readUint8();
             if (dataType === PacketCommand.ServerChangeState) {
-                const state: ServerState = packet.data.readUint8(1);
+                const state: ServerState = packet.data.readUint8(2);
                 if (state === ServerState.InGame) {
                     expParser.resetData();
                     sendMessage('gameState', 'InGame');
-                    const charNameLength = packet.data.readUint8(2);
+                    const charNameLength = packet.data.readUint8(3);
                     let charName = '';
-                    for (let i = 3; i < 3 + charNameLength; i++) {
+                    for (let i = 4; i < 4 + charNameLength; i++) {
                         charName += String.fromCharCode(
                             packet.data.readUint8(i),
                         );
