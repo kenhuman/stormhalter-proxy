@@ -1,9 +1,11 @@
-import { app } from 'electron';
+import { app, globalShortcut } from 'electron';
 import isDev from 'electron-is-dev';
 import prepareNext from 'electron-next';
 import { createMainWindow } from './appMainWindow';
 import { UdpProxyOptions } from './parser/UdpProxy';
 import Proxy from './parser/Proxy';
+import { createOverlayServer } from './parser/overlayServer';
+import { registerGlobalShortcuts } from './globalShortcuts';
 
 const initProxy = (): Proxy => {
     const proxyOptions: UdpProxyOptions = {
@@ -22,7 +24,9 @@ app.on('ready', async () => {
     await prepareNext('./renderer');
 
     const mainWindow = createMainWindow();
-    mainWindow.webContents.openDevTools();
+    if (isDev) {
+        mainWindow.webContents.openDevTools();
+    }
 
     const url = isDev
         ? 'http://localhost:8000/'
@@ -34,7 +38,13 @@ app.on('ready', async () => {
     await mainWindow.loadURL(url);
 
     initProxy();
+    await createOverlayServer();
+
+    registerGlobalShortcuts();
 });
 
 // Quit the app once all windows are closed
 app.on('window-all-closed', app.quit);
+app.on('will-quit', () => {
+    globalShortcut.unregisterAll();
+});

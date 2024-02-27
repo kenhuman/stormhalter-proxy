@@ -1,4 +1,4 @@
-import isDev from 'electron-is-dev';
+import { app } from 'electron';
 import { getMainWindow } from '../appMainWindow';
 
 export const log = (message: string) => {
@@ -10,8 +10,8 @@ export const sendMessage = (channel: string, message: string): void => {
 };
 
 export const debug = (message: string) => {
-    if (isDev) {
+    if (!app.isPackaged) {
         console.log(message);
-        sendMessage('debug', message);
     }
+    sendMessage('debug', message);
 };

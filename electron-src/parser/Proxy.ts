@@ -43,7 +43,7 @@ export default class Proxy {
                 for (const parser of this.parsers) {
                     parser(packets, rinfo);
                 }
-            } catch(error) {
+            } catch (error) {
                 this.proxy.emit('error', error);
             } finally {
                 return msg;
@@ -60,11 +60,11 @@ export default class Proxy {
                     packets = transformer(packets, rinfo);
                 }
                 msg = combinePackets(packets);
-            } catch(error) {
+            } catch (error) {
                 this.proxy.emit('error', error);
             } finally {
                 return msg;
-            }            
+            }
         };
 
         this.parsers = parsers;

@@ -38,3 +38,5 @@ next-env.d.ts
 .vscode
 main
 renderer/.next
+renderer/out
+dist

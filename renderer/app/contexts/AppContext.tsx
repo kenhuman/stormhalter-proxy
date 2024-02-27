@@ -70,6 +70,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         };
     }, []);
 
+    useEffect(() => {
+        const handleDebug = (_event, args) => {
+            console.log(args);
+        };
+        window.electron.receive('debug', handleDebug);
+
+        return () => {
+            window.electron.removeAllListeners('debug');
+        };
+    }, []);
+
     return (
         <AppContext.Provider
             value={{
