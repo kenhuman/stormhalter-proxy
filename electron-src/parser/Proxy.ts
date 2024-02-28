@@ -2,9 +2,10 @@ import dgram from 'node:dgram';
 
 import { debug, log } from './sendMessage';
 import UdpProxy, { UdpProxyOptions } from './UdpProxy';
-import { Packet, combinePackets, splitPackets } from './packet';
+import { combinePackets, splitPackets } from './packet';
 import parsers, { PacketParser } from './parsers';
 import transformers, { PacketTransformer } from './transformers';
+import { init } from '../memory';
 
 export default class Proxy {
     private proxy: UdpProxy;
@@ -13,10 +14,8 @@ export default class Proxy {
     private parsers: PacketParser[] = [];
     private transformers: PacketTransformer[] = [];
 
-    private outgoingCount = 0;
-    private incomingCount = 0;
-
-    private outgoingQueue: Packet[] = [];
+    public outgoingCount = 0;
+    public incomingCount = 0;
 
     constructor(options: UdpProxyOptions) {
         this.options = options;
@@ -27,6 +26,9 @@ export default class Proxy {
     public startProxy = (): void => {
         this.proxy.on('listening', (_details) => {
             log('Listening ...');
+        });
+        this.proxy.on('bound', () => {
+            init();
         });
         this.proxy.on('error', (error) => {
             debug(JSON.stringify(error));
@@ -74,8 +76,7 @@ export default class Proxy {
                         this.outgoingCount = lastPacket.counter;
                     }
                 }
-                msg = combinePackets([...packets, ...this.outgoingQueue]);
-                this.outgoingQueue = [];
+                msg = combinePackets(packets);
             } catch (error) {
                 this.proxy.emit('error', error);
             } finally {
@@ -91,10 +92,4 @@ export default class Proxy {
     };
 
     public getUdpProxy = (): UdpProxy => this.proxy;
-    public getIncomingCount = (): number => this.incomingCount;
-    public getOutgoingCount = (): number => this.outgoingCount;
-
-    public addToOutgoingQueue = (packet: Packet): void => {
-        this.outgoingQueue.push(packet);
-    };
 }

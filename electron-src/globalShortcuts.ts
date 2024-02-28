@@ -3,8 +3,7 @@ import {
     hasForegroundWindowChanged,
 } from 'node-active-window';
 import { globalShortcut } from 'electron';
-import { Packet } from './parser/packet';
-import { getProxy } from '.';
+import { Packet, sendPacket } from './parser/packet';
 
 let activeWindowIsKesmai = false;
 
@@ -45,11 +44,9 @@ const griffinBoots = async () => {
         return;
     }
 
-    const proxy = getProxy();
-
     const packet: Packet = {
         type: 0x44,
-        counter: proxy.getOutgoingCount(),
+        counter: 0,
         fragment: false,
         size: 0,
         unknown1: false,
@@ -63,7 +60,7 @@ const griffinBoots = async () => {
 
     packet.size = packet.data.length;
 
-    proxy.addToOutgoingQueue(packet);
+    sendPacket(packet);
 };
 
 export const registerGlobalShortcuts = () => {

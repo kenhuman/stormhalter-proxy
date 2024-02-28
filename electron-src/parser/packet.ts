@@ -1,6 +1,8 @@
 import { Int8, Int16 } from './types';
 import { debug } from './sendMessage';
 import { getProxy } from '..';
+import { getAddress, getCoreClr, writeMemory } from '../memory';
+import memory from 'memoryjs';
 
 interface IPacket {
     type: Int8;
@@ -165,15 +167,26 @@ export const combinePackets = (packets: Packet[]): Buffer => {
 };
 
 export const sendPacket = (packet: Packet): void => {
-    if (packet?.data) {
-        const header = createHeader(packet);
-        const packetToSend = Buffer.concat([header, packet.data]);
-        const udpProxy = getProxy().getUdpProxy();
-        udpProxy.send(
-            udpProxy.client,
-            packetToSend,
-            udpProxy.remoteAddress,
-            udpProxy.remotePort,
-        );
+    if (!packet) {
+        return;
     }
+    const proxy = getProxy();
+    const nextCount = proxy.outgoingCount + 1;
+    packet.counter = nextCount;
+    const baseAddress = getCoreClr().modBaseAddr;
+    const networkBase = getAddress(
+        baseAddress,
+        [0x004a2620, 0x0, 0x1e0, 0xf8, 0x20, 0x20, 0x228],
+    );
+    writeMemory(networkBase, 0x30, nextCount + 1, memory.INT);
+    writeMemory(networkBase, 0x38, nextCount + 1, memory.INT);
+    const message = combinePackets([packet]);
+    const udpProxy = getProxy().getUdpProxy();
+    udpProxy.send(
+        udpProxy.client,
+        message,
+        udpProxy.remoteAddress,
+        udpProxy.remotePort,
+    );
+    proxy.outgoingCount += 1;
 };
