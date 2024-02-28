@@ -1,5 +1,6 @@
 import { Int8, Int16 } from './types';
 import { debug } from './sendMessage';
+import { getProxy } from '..';
 
 interface IPacket {
     type: Int8;
@@ -161,4 +162,18 @@ export const combinePackets = (packets: Packet[]): Buffer => {
         }
     }
     return Buffer.concat(buffers);
+};
+
+export const sendPacket = (packet: Packet): void => {
+    if (packet?.data) {
+        const header = createHeader(packet);
+        const packetToSend = Buffer.concat([header, packet.data]);
+        const udpProxy = getProxy().getUdpProxy();
+        udpProxy.send(
+            udpProxy.client,
+            packetToSend,
+            udpProxy.remoteAddress,
+            udpProxy.remotePort,
+        );
+    }
 };

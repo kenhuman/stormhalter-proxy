@@ -2,7 +2,7 @@ import dgram from 'node:dgram';
 
 import { debug, log } from './sendMessage';
 import UdpProxy, { UdpProxyOptions } from './UdpProxy';
-import { combinePackets, splitPackets } from './packet';
+import { Packet, combinePackets, splitPackets } from './packet';
 import parsers, { PacketParser } from './parsers';
 import transformers, { PacketTransformer } from './transformers';
 
@@ -12,6 +12,11 @@ export default class Proxy {
 
     private parsers: PacketParser[] = [];
     private transformers: PacketTransformer[] = [];
+
+    private outgoingCount = 0;
+    private incomingCount = 0;
+
+    private outgoingQueue: Packet[] = [];
 
     constructor(options: UdpProxyOptions) {
         this.options = options;
@@ -43,6 +48,10 @@ export default class Proxy {
                 for (const parser of this.parsers) {
                     parser(packets, rinfo);
                 }
+                const lastPacket = packets[packets.length - 1];
+                if (lastPacket) {
+                    this.incomingCount = lastPacket.counter;
+                }
             } catch (error) {
                 this.proxy.emit('error', error);
             } finally {
@@ -59,7 +68,14 @@ export default class Proxy {
                 for (const transformer of this.transformers) {
                     packets = transformer(packets, rinfo);
                 }
-                msg = combinePackets(packets);
+                const lastPacket = packets[packets.length - 1];
+                if (lastPacket) {
+                    if (lastPacket.counter > this.outgoingCount) {
+                        this.outgoingCount = lastPacket.counter;
+                    }
+                }
+                msg = combinePackets([...packets, ...this.outgoingQueue]);
+                this.outgoingQueue = [];
             } catch (error) {
                 this.proxy.emit('error', error);
             } finally {
@@ -72,5 +88,13 @@ export default class Proxy {
 
         this.proxy.addIncomingTransform(incomingTransform);
         this.proxy.addOutgoingTransform(outgoingTransform);
+    };
+
+    public getUdpProxy = (): UdpProxy => this.proxy;
+    public getIncomingCount = (): number => this.incomingCount;
+    public getOutgoingCount = (): number => this.outgoingCount;
+
+    public addToOutgoingQueue = (packet: Packet): void => {
+        this.outgoingQueue.push(packet);
     };
 }

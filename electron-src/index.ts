@@ -19,6 +19,8 @@ const initProxy = (): Proxy => {
     return proxy;
 };
 
+let proxy: Proxy;
+
 // Prepare the renderer once the app is ready
 app.on('ready', async () => {
     await prepareNext('./renderer');
@@ -37,7 +39,7 @@ app.on('ready', async () => {
 
     await mainWindow.loadURL(url);
 
-    initProxy();
+    proxy = initProxy();
     await createOverlayServer();
 
     registerGlobalShortcuts();
@@ -48,3 +50,5 @@ app.on('window-all-closed', app.quit);
 app.on('will-quit', () => {
     globalShortcut.unregisterAll();
 });
+
+export const getProxy = (): Proxy => proxy;
