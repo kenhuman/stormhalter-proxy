@@ -52,7 +52,7 @@ export default function PacketMontitorList({
     return (
         <>
             <MultiSelectDropdown
-                title="filter"
+                title="Filter"
                 options={[...packetNames]}
                 onChange={handleFilterChange}
             />

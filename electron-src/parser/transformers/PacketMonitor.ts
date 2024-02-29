@@ -16,6 +16,15 @@ const parser: PacketTransformer = (packets, _rinfo): Packet[] => {
                     key: packet.counter,
                     type: packetTypeName,
                     data: packet.data,
+                    header: {
+                        type: packet.type,
+                        counter: packet.counter,
+                        fragment: packet.fragment,
+                        size: packet.size,
+                        unknown1: packet.unknown1,
+                        unknown2: packet.unknown1,
+                        unknown3: packet.unknown1,
+                    },
                 }),
             );
         }

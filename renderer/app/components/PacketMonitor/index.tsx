@@ -12,13 +12,14 @@ export default function PacketMonitor() {
     const packetCount = useRef<number>(0);
 
     const handlePacket = (type: 'incoming' | 'outgoing', args: string) => {
-        const packet = JSON.parse(args);
+        const packet = JSON.parse(args) as Packet;
         packetsRef.current.unshift({
             key: packet.key,
             id: packetCount.current,
             packetType: packet.type,
-            data: packet.data.data,
+            data: packet.data,
             type,
+            header: packet.header,
         });
 
         if (packetsRef.current.length > 1000) {
@@ -53,18 +54,17 @@ export default function PacketMonitor() {
 
     return (
         <div className="h-[440px] w-full flex flex-row">
-            <div className="w-1/3 overflow-y-scroll">
+            <div className="w-1/3 overflow-y-scroll bg-base-200">
                 <PacketMontitorList
                     packets={packets}
                     onSelect={setDisplayedPacket}
                 />
             </div>
-            <div className="w-2/3 overflow-y-scroll">
+            <div className="w-2/3 overflow-y-scroll bg-base-200">
                 <PacketMontitorDisplay
-                    content={
-                        packets?.find((packet) => packet.id === displayedPacket)
-                            ?.data
-                    }
+                    packet={packets?.find(
+                        (packet) => packet.id === displayedPacket,
+                    )}
                 />
             </div>
         </div>

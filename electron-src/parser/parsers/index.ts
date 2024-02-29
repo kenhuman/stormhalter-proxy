@@ -5,6 +5,8 @@ import ServerChangeState from './ServerChangeState';
 import ServerLocalizedCommunicationMessage from './ServerLocalizedCommunicationMessage';
 import PacketMonitor from './PacketMonitor';
 import ServerCommunicationMessage from './ServerCommunicationMessage';
+import ServerEntityUpdate from './ServerEntityUpdate';
+import ServerEntityDeparting from './ServerEntityDeparting';
 
 export type PacketParser = (packets: Packet[], rinfo: dgram.RemoteInfo) => void;
 
@@ -13,6 +15,8 @@ const parsers = [
     ServerLocalizedCommunicationMessage,
     PacketMonitor,
     ServerCommunicationMessage,
+    ServerEntityUpdate,
+    ServerEntityDeparting,
 ];
 
 export default parsers;

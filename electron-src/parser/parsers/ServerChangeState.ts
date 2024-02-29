@@ -2,6 +2,7 @@ import { PacketCommand, ServerState } from '../packet';
 import { debug, sendMessage } from '../sendMessage';
 import { PacketParser } from '.';
 import { expParser } from './ServerLocalizedCommunicationMessage';
+import { mobList } from './ServerEntityUpdate';
 
 const parser: PacketParser = (packets, _rinfo): void => {
     try {
@@ -13,6 +14,7 @@ const parser: PacketParser = (packets, _rinfo): void => {
                     const state: ServerState = packet.data.readUint8(2);
                     if (state === ServerState.InGame) {
                         expParser.resetData();
+                        mobList.clear();
                         sendMessage('gameState', 'InGame');
                         const charNameLength = packet.data.readUint8(3);
                         let charName = '';
@@ -28,7 +30,7 @@ const parser: PacketParser = (packets, _rinfo): void => {
                 }
             }
         }
-    } catch(err) {
+    } catch (err) {
         debug(`ServerChangeState: ${err}`);
         throw err;
     }

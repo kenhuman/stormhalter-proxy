@@ -1,5 +1,7 @@
 import ExpParser from '@/components/ExpParser';
 import PacketMonitor from './components/PacketMonitor/index';
+import Placeholder from './components/Placeholder';
+import MobList from './components/MobList';
 
 export default function Index() {
     return (
@@ -33,6 +35,19 @@ export default function Index() {
                 className="tab-content bg-base-100 border-base-300 rounded-box p-6"
             >
                 <PacketMonitor />
+            </div>
+            <input
+                type="radio"
+                name="mainTabs"
+                role="tab"
+                className="tab"
+                aria-label="Mob List"
+            />
+            <div
+                role="tabpanel"
+                className="tab-content bg-base-100 border-base-300 rounded-box p-6"
+            >
+                <MobList />
             </div>
         </div>
     );
