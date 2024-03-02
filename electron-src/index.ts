@@ -1,4 +1,4 @@
-import { app, globalShortcut } from 'electron';
+import { Menu, app, globalShortcut } from 'electron';
 import isDev from 'electron-is-dev';
 import prepareNext from 'electron-next';
 import { createMainWindow } from './appMainWindow';
@@ -6,6 +6,7 @@ import { UdpProxyOptions } from './parser/UdpProxy';
 import Proxy from './parser/Proxy';
 import { createOverlayServer } from './parser/overlayServer';
 import { registerGlobalShortcuts } from './globalShortcuts';
+import { menu } from './menu';
 
 const initProxy = (): Proxy => {
     const proxyOptions: UdpProxyOptions = {
@@ -23,6 +24,7 @@ let proxy: Proxy;
 
 // Prepare the renderer once the app is ready
 app.on('ready', async () => {
+    Menu.setApplicationMenu(menu);
     await prepareNext('./renderer');
 
     const mainWindow = createMainWindow();

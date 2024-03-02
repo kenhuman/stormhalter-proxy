@@ -1,6 +1,11 @@
 import * as net from 'node:net';
-import { exec, spawn } from 'node:child_process';
+import {
+    ChildProcessWithoutNullStreams,
+    exec,
+    spawn,
+} from 'node:child_process';
 import { debug } from './sendMessage';
+import { store } from '../store';
 
 interface OverlayServer {
     server?: net.Server;
@@ -21,8 +26,13 @@ interface SendMessageOptions {
 }
 
 const connection: OverlayServer = {};
+let isActive = store.get('overlay.isActive');
+let kesmaiOverlayProcess: ChildProcessWithoutNullStreams;
 
 export const createOverlayServer = async (): Promise<void> => {
+    if (!isActive) {
+        return;
+    }
     const server = net.createServer((socket) => {
         debug('Overlay Provider connected...');
         connection.client = socket;
@@ -34,7 +44,24 @@ export const createOverlayServer = async (): Promise<void> => {
     await checkForOverlayProcess();
 };
 
+const destroyOverlayServer = async (): Promise<void> => {
+    debug('Destroying Overlay Server');
+    connection.server?.close();
+    connection.client?.destroy();
+    connection.client = undefined;
+    connection.server = undefined;
+
+    if (await isRunning('KesmaiOverlay.exe')) {
+        debug('Killing KesmaiOverlay.exe');
+        kesmaiOverlayProcess.kill();
+    }
+};
+
 export const sendOverlayData = async (data: string) => {
+    if (!isActive) {
+        return;
+    }
+
     if (!(await checkForOverlayProcess())) {
         debug('checkForOVerlayProcess failed.');
         return false;
@@ -111,4 +138,17 @@ const isRunning = (processName: string) =>
         });
     });
 
-const startProcess = (processPath: string) => spawn(processPath);
+const startProcess = (processPath: string) => {
+    kesmaiOverlayProcess = spawn(processPath);
+};
+
+export const setOverlayActive = async (state: boolean): Promise<void> => {
+    isActive = state;
+
+    if (isActive) {
+        await createOverlayServer();
+        return;
+    }
+
+    destroyOverlayServer();
+};
