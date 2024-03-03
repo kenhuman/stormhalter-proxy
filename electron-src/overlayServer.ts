@@ -4,8 +4,8 @@ import {
     exec,
     spawn,
 } from 'node:child_process';
-import { debug } from './sendMessage';
-import { store } from '../store';
+import { debug } from './parser/sendMessage';
+import { store } from './store';
 
 interface OverlayServer {
     server?: net.Server;

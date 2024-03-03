@@ -4,7 +4,7 @@ import prepareNext from 'electron-next';
 import { createMainWindow } from './appMainWindow';
 import { UdpProxyOptions } from './parser/UdpProxy';
 import Proxy from './parser/Proxy';
-import { createOverlayServer } from './parser/overlayServer';
+import { createOverlayServer } from './overlayServer';
 import { registerGlobalShortcuts } from './globalShortcuts';
 import { menu } from './menu';
 

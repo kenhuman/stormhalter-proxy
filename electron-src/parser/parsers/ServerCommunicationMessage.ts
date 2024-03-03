@@ -1,5 +1,5 @@
 import { PacketParser } from '.';
-import { sendOverlayMessage } from '../overlayServer';
+import { sendOverlayMessage } from '../../overlayServer';
 import { PacketCommand } from '../packet';
 import { debug } from '../sendMessage';
 

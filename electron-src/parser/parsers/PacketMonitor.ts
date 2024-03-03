@@ -23,9 +23,7 @@ const parser: PacketParser = (packets, _rinfo): void => {
                             counter: packet.counter,
                             fragment: packet.fragment,
                             size: packet.size,
-                            unknown1: packet.unknown1,
-                            unknown2: packet.unknown1,
-                            unknown3: packet.unknown1,
+                            sizeInBits: packet.sizeInBits,
                         },
                     }),
                 );

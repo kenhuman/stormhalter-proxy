@@ -40,3 +40,4 @@ main
 renderer/.next
 renderer/out
 dist
+output

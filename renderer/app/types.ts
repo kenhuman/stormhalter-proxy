@@ -18,9 +18,7 @@ export interface Packet {
         counter: number;
         fragment: boolean;
         size: number;
-        unknown1: boolean;
-        unknown2: boolean;
-        unknown3: boolean;
+        sizeInBits: number;
     };
 }
 

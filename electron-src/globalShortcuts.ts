@@ -4,8 +4,10 @@ import {
 } from 'node-active-window';
 import { globalShortcut } from 'electron';
 import { Packet, sendPacket } from './parser/packet';
+import { store } from './store';
 
 let activeWindowIsKesmai = false;
+let isActive = store.get('shortcuts.isActive');
 
 const checkIfWindowChanged = (): boolean => {
     if (activeWindowIsKesmai) {
@@ -49,9 +51,7 @@ const griffinBoots = async () => {
         counter: 0,
         fragment: false,
         size: 0,
-        unknown1: false,
-        unknown2: false,
-        unknown3: false,
+        sizeInBits: 0,
     };
 
     packet.data = Buffer.from([
@@ -64,5 +64,21 @@ const griffinBoots = async () => {
 };
 
 export const registerGlobalShortcuts = () => {
+    if (!isActive) {
+        return;
+    }
     globalShortcut.register('Alt+X', griffinBoots);
+};
+
+export const unregisterGlobalShortcuts = () => {
+    globalShortcut.unregisterAll();
+};
+
+export const setShortcutsActive = (active: boolean) => {
+    isActive = active;
+    if (isActive) {
+        registerGlobalShortcuts();
+    } else {
+        unregisterGlobalShortcuts();
+    }
 };

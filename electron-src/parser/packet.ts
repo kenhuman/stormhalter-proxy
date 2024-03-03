@@ -3,15 +3,14 @@ import { debug } from './sendMessage';
 import { getProxy } from '..';
 import { getAddress, getCoreClr, writeMemory } from '../memory';
 import memory from 'memoryjs';
+import { writeFile } from 'fs/promises';
 
 interface IPacket {
     type: Int8;
     counter: Int16;
     fragment: boolean;
+    sizeInBits: number;
     size: Int16;
-    unknown1: boolean;
-    unknown2: boolean;
-    unknown3: boolean;
     data?: Buffer;
 }
 
@@ -101,14 +100,20 @@ export const parseHeader = (header: Buffer): Packet => {
         debug(`unknown header: ${header}`);
         return null;
     }
+    const type = header.readUint8(0);
+    let low = header.readUint8(1);
+    let high = header.readUint8(2);
+    const fragment = (low & 1) === 1;
+    const counter = (low >> 1) | (high << 7);
+    const size = header.readUint16LE(3);
+
+    console.log(header);
     const result: Packet = {
-        type: header.readUInt8(0),
-        counter: header.readUInt16LE(1) >> 1,
-        fragment: !!(header.readUInt16LE(1) & 0x1),
-        size: header.readUInt16LE(3) >> 3,
-        unknown1: !!(header.readUInt16LE(3) & 0x1),
-        unknown2: !!((header.readUInt16LE(3) >> 1) & 0x1),
-        unknown3: !!((header.readUInt16LE(3) >> 2) & 0x1),
+        type,
+        counter,
+        fragment,
+        sizeInBits: size,
+        size: Math.floor((size + 7) / 8),
     };
     return result;
 };
@@ -120,16 +125,11 @@ export const createHeader = (packet: Packet): Buffer => {
     }
     header.writeUInt8(packet.type, 0);
     header.writeUInt16LE((packet.counter << 1) | +packet.fragment, 1);
-    header.writeUInt16LE(
-        (packet.size << 3) |
-            +packet.unknown1 |
-            (+packet.unknown2 << 1) |
-            (+packet.unknown3 << 2),
-        3,
-    );
+    header.writeUInt16LE(packet.sizeInBits, 3);
     return header;
 };
 
+let packetCount = 0;
 export const splitPackets = (packet: Buffer): Packet[] => {
     const packetBuffer = Buffer.from(packet);
     const packets: Packet[] = [];
@@ -145,12 +145,28 @@ export const splitPackets = (packet: Buffer): Packet[] => {
             console.error('could not read this packet:', packetBuffer);
             return packets;
         }
-        const packetDataLength =
-            basePacket.size + +basePacket.unknown1 + +basePacket.unknown2;
-        const data = packetBuffer.subarray(offset, offset + packetDataLength);
-        offset += packetDataLength;
+        let data = packetBuffer.subarray(offset, offset + basePacket.size);
+        offset += basePacket.size;
         basePacket.data = data;
         packets.push(basePacket);
+        let s = '';
+        for (const c of header) {
+            s += c.toString(16).padStart(2, '0') + ' ';
+        }
+        s += '\n';
+        let count = 0;
+        for (const c of data) {
+            s += c.toString(16).padStart(2, '0') + ' ';
+            count++;
+            if (count % 16 === 0) {
+                s += '\n';
+            }
+        }
+        packetCount++;
+        writeFile(
+            `${process.cwd()}/output/${packetCount}-${basePacket.counter}-${basePacket.type.toString(16).padStart(2, '0')}`,
+            s,
+        );
     }
     return packets;
 };

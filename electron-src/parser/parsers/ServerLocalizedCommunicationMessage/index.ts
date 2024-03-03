@@ -2,7 +2,7 @@ import { PacketCommand } from '../../packet';
 import { PacketParser } from '..';
 import ExperienceParser from './ExpParser';
 import { debug } from '../../sendMessage';
-import { sendOverlayMessage } from '../../overlayServer';
+import { sendOverlayMessage } from '../../../overlayServer';
 
 type ParseFunction = (data: string[]) => void;
 
