@@ -1,5 +1,5 @@
 import { Int8, Int16 } from './types';
-import { debug } from './sendMessage';
+import { debug } from '../sendMessage';
 import { getProxy } from '..';
 import { getAddress, getCoreClr, writeMemory } from '../memory';
 import memory from 'memoryjs';
@@ -106,8 +106,6 @@ export const parseHeader = (header: Buffer): Packet => {
     const fragment = (low & 1) === 1;
     const counter = (low >> 1) | (high << 7);
     const size = header.readUint16LE(3);
-
-    console.log(header);
     const result: Packet = {
         type,
         counter,
@@ -163,10 +161,12 @@ export const splitPackets = (packet: Buffer): Packet[] => {
             }
         }
         packetCount++;
-        writeFile(
-            `${process.cwd()}/output/${packetCount}-${basePacket.counter}-${basePacket.type.toString(16).padStart(2, '0')}`,
-            s,
-        );
+        if (false) {
+            writeFile(
+                `${process.cwd()}/output/${packetCount}-${basePacket?.counter}-${basePacket?.type.toString(16).padStart(2, '0')}`,
+                s,
+            );
+        }
     }
     return packets;
 };
@@ -182,13 +182,18 @@ export const combinePackets = (packets: Packet[]): Buffer => {
     return Buffer.concat(buffers);
 };
 
-export const sendPacket = (packet: Packet): void => {
-    if (!packet) {
+export const sendPacket = (packets: Packet[]): void => {
+    if (!packets) {
         return;
     }
     const proxy = getProxy();
-    const nextCount = proxy.outgoingCount + 1;
-    packet.counter = nextCount;
+    let nextCount = proxy.outgoingCount;
+    for (const packet of packets) {
+        if (packet) {
+            nextCount++;
+            packet.counter = nextCount;
+        }
+    }
     const baseAddress = getCoreClr().modBaseAddr;
     const networkBase = getAddress(
         baseAddress,
@@ -196,7 +201,7 @@ export const sendPacket = (packet: Packet): void => {
     );
     writeMemory(networkBase, 0x30, nextCount + 1, memory.INT);
     writeMemory(networkBase, 0x38, nextCount + 1, memory.INT);
-    const message = combinePackets([packet]);
+    const message = combinePackets(packets);
     const udpProxy = getProxy().getUdpProxy();
     udpProxy.send(
         udpProxy.client,
@@ -204,5 +209,5 @@ export const sendPacket = (packet: Packet): void => {
         udpProxy.remoteAddress,
         udpProxy.remotePort,
     );
-    proxy.outgoingCount += 1;
+    proxy.outgoingCount = nextCount;
 };

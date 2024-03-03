@@ -1,5 +1,5 @@
 import { PacketCommand, ServerState } from '../packet';
-import { debug, sendMessage } from '../sendMessage';
+import { debug, sendMessage } from '../../sendMessage';
 import { PacketParser } from '.';
 import { expParser } from './ServerLocalizedCommunicationMessage';
 import { mobList } from './ServerEntityUpdate';

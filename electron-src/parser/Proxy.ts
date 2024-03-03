@@ -1,6 +1,6 @@
 import dgram from 'node:dgram';
 
-import { debug, log } from './sendMessage';
+import { debug, log } from '../sendMessage';
 import UdpProxy, { UdpProxyOptions } from './UdpProxy';
 import { combinePackets, splitPackets } from './packet';
 import parsers, { PacketParser } from './parsers';

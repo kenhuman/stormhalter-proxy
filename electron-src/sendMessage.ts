@@ -1,5 +1,5 @@
 import { app } from 'electron';
-import { getMainWindow } from '../appMainWindow';
+import { getMainWindow } from './appMainWindow';
 
 export const log = (message: string) => {
     sendMessage('log', message);

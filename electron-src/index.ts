@@ -7,6 +7,7 @@ import Proxy from './parser/Proxy';
 import { createOverlayServer } from './overlayServer';
 import { registerGlobalShortcuts } from './globalShortcuts';
 import { menu } from './menu';
+import { addIpcListeners } from './listeners';
 
 const initProxy = (): Proxy => {
     const proxyOptions: UdpProxyOptions = {
@@ -45,6 +46,7 @@ app.on('ready', async () => {
     await createOverlayServer();
 
     registerGlobalShortcuts();
+    addIpcListeners();
 });
 
 // Quit the app once all windows are closed

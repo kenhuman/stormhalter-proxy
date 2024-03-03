@@ -17,6 +17,9 @@ export default function MobList() {
         };
     }, []);
 
+    const griffBootsMob = (entityId: number): void =>
+        window.electron.send('requestGriffBoots', entityId);
+
     return (
         <div className="h-[440px] w-full flex flex-row">
             <div className="flex-1">
@@ -73,6 +76,7 @@ export default function MobList() {
                                 <span
                                     key={mob.entityId}
                                     className={`hover:bg-base-300 cursor-pointer max-h-5 font-mono whitespace-nowrap block`}
+                                    onClick={(e) => griffBootsMob(mob.entityId)}
                                 >
                                     {`${mob.name} (${mob.entityId})`}{' '}
                                     {mob.locationX && mob.locationY

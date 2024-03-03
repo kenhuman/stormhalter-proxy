@@ -1,5 +1,5 @@
 import { Packet, PacketCommand } from '../packet';
-import { sendMessage } from '../sendMessage';
+import { sendMessage } from '../../sendMessage';
 import { PacketTransformer } from '.';
 
 const parser: PacketTransformer = (packets, _rinfo): Packet[] => {

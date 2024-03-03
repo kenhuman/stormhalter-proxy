@@ -1,5 +1,5 @@
 import { Packet, PacketCommand } from '../packet';
-import { debug, sendMessage } from '../sendMessage';
+import { debug, sendMessage } from '../../sendMessage';
 import { PacketParser } from '.';
 
 interface ServerEntityUpdate {

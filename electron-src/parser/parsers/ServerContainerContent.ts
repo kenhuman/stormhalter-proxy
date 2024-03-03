@@ -1,5 +1,5 @@
 import { PacketCommand } from '../packet';
-import { debug } from '../sendMessage';
+import { debug } from '../../sendMessage';
 import { PacketParser } from '.';
 
 enum ContainerType {
@@ -105,7 +105,6 @@ const parser: PacketParser = (packets, _rinfo): void => {
                 if (dataType === PacketCommand.ServerContainerContent) {
                     const type = packet.data.readUInt8(2);
                     const size = packet.data.readUInt8(3);
-                    debug(`type: ${type}, size: ${size}`);
                     const items = [];
                     for (let idx = 0; idx < size; idx++) {
                         let offsetModifier2 = Math.floor(idx / 8);

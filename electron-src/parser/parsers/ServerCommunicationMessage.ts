@@ -1,7 +1,7 @@
 import { PacketParser } from '.';
 import { sendOverlayMessage } from '../../overlayServer';
 import { PacketCommand } from '../packet';
-import { debug } from '../sendMessage';
+import { debug } from '../../sendMessage';
 
 type ParseFunction = (data: string) => void;
 

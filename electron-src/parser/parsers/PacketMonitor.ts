@@ -1,5 +1,5 @@
 import { PacketCommand } from '../packet';
-import { debug, sendMessage } from '../sendMessage';
+import { debug, sendMessage } from '../../sendMessage';
 import { PacketParser } from '.';
 
 const parser: PacketParser = (packets, _rinfo): void => {

@@ -8,6 +8,9 @@ import ServerCommunicationMessage from './ServerCommunicationMessage';
 import ServerEntityUpdate from './ServerEntityUpdate';
 import ServerEntityDeparting from './ServerEntityDeparting';
 import ServerContainerContent from './ServerContainerContent';
+import ServerContainerClear from './ServerContainerClear';
+import ServerContainerUpdate from './ServerContainerUpdate';
+import ServerRoundUpdate from './ServerRoundUpdate';
 
 export type PacketParser = (packets: Packet[], rinfo: dgram.RemoteInfo) => void;
 
@@ -19,6 +22,9 @@ const parsers = [
     ServerEntityUpdate,
     ServerEntityDeparting,
     ServerContainerContent,
+    ServerContainerClear,
+    ServerContainerUpdate,
+    ServerRoundUpdate,
 ];
 
 export default parsers;

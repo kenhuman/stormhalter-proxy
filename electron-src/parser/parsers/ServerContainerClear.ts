@@ -1,5 +1,5 @@
 import { PacketCommand } from '../packet';
-import { debug } from '../sendMessage';
+import { debug } from '../../sendMessage';
 import { PacketParser } from '.';
 import { inventory } from './ServerContainerContent';
 

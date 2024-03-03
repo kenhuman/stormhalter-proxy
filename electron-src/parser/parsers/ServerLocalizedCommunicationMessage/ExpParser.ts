@@ -1,4 +1,4 @@
-import { sendMessage } from '../../sendMessage';
+import { sendMessage } from '../../../sendMessage';
 
 export default class ExperienceParser {
     private sessionStartTime: Date = new Date();
