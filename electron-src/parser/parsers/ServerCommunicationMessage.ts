@@ -1,6 +1,6 @@
 import { PacketParser } from '.';
 import { sendOverlayMessage } from '../../overlayServer';
-import { PacketCommand } from '../packet';
+import { PacketCommand, getDataFromFragments } from '../packet';
 import { debug } from '../../sendMessage';
 
 type ParseFunction = (data: string) => void;
@@ -10,9 +10,13 @@ const parser: PacketParser = (packets, _rinfo): void => {
         const msgPackets = packets.filter((packet) => packet?.type === 0x44);
         for (const packet of msgPackets) {
             if (packet?.data) {
-                const dataType = packet.data.readUint8();
+                const data = getDataFromFragments(packet);
+                if (!data) {
+                    return;
+                }
+                const dataType = data.readUint8();
                 if (dataType === PacketCommand.ServerCommunicationMessage) {
-                    let msgData = packet.data.subarray(7);
+                    let msgData = data.subarray(7);
                     const message = [];
                     do {
                         const length = msgData.readUint8();

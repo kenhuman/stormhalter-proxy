@@ -1,4 +1,4 @@
-import { PacketCommand } from '../packet';
+import { PacketCommand, getDataFromFragments } from '../packet';
 import { debug, sendMessage } from '../../sendMessage';
 import { PacketParser } from '.';
 import { mobList } from './ServerEntityUpdate';
@@ -8,9 +8,13 @@ const parser: PacketParser = (packets, _rinfo): void => {
         const msgPackets = packets.filter((packet) => packet?.type === 0x44);
         for (const packet of msgPackets) {
             if (packet?.data) {
-                const dataType = packet.data.readUint8();
+                const data = getDataFromFragments(packet);
+                if (!data) {
+                    return;
+                }
+                const dataType = data.readUint8();
                 if (dataType === PacketCommand.ServerEntityDeparting) {
-                    const entityId = packet.data.readUint32LE(2);
+                    const entityId = data.readUint32LE(2);
                     if (mobList.has(entityId)) {
                         const mob = mobList.get(entityId);
                         if (mob?.locationX === 3 && mob.locationY === 3) {

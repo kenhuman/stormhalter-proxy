@@ -1,4 +1,4 @@
-import { PacketCommand } from '../packet';
+import { PacketCommand, getDataFromFragments } from '../packet';
 import { debug, sendMessage } from '../../sendMessage';
 import { PacketParser } from '.';
 
@@ -7,7 +7,11 @@ const parser: PacketParser = (packets, _rinfo): void => {
         const msgPackets = packets.filter((packet) => packet?.type === 0x44);
         for (const packet of msgPackets) {
             if (packet?.data) {
-                const dataType = packet.data.readUint8();
+                const data = getDataFromFragments(packet);
+                if (!data) {
+                    return;
+                }
+                const dataType = data.readUint8();
                 const packetTypeName =
                     Object.entries(PacketCommand).find(
                         ([_, v]) => v === dataType,
@@ -17,7 +21,7 @@ const parser: PacketParser = (packets, _rinfo): void => {
                     JSON.stringify({
                         key: packet.counter,
                         type: packetTypeName,
-                        data: packet.data,
+                        data,
                         header: {
                             type: packet.type,
                             counter: packet.counter,

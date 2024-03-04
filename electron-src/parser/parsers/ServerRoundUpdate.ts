@@ -1,4 +1,9 @@
-import { Packet, PacketCommand, sendPacket } from '../packet';
+import {
+    Packet,
+    PacketCommand,
+    getDataFromFragments,
+    sendPacket,
+} from '../packet';
 import { debug } from '../../sendMessage';
 import { PacketParser } from '.';
 
@@ -12,9 +17,13 @@ const parser: PacketParser = (packets, _rinfo): void => {
         const msgPackets = packets.filter((packet) => packet?.type === 0x44);
         for (const packet of msgPackets) {
             if (packet?.data) {
-                const dataType = packet.data.readUint8();
+                const data = getDataFromFragments(packet);
+                if (!data) {
+                    return;
+                }
+                const dataType = data.readUint8();
                 if (dataType === PacketCommand.ServerRoundUpdate) {
-                    roundWaiting = !!!(packet.data.readUInt8(2) & 0x1);
+                    roundWaiting = !!!(data.readUInt8(2) & 0x1);
                     sendTriggered = false;
                     if (!roundWaiting) {
                         const packetsToSend = packetQueue.shift();

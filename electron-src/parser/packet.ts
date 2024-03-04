@@ -5,6 +5,12 @@ import { getAddress, getCoreClr, readMemory, writeMemory } from '../memory';
 import memory from 'memoryjs';
 import { writeFile } from 'fs/promises';
 
+interface FragmentInfo {
+    group: number;
+    totalBits: number;
+    chunkByteSize: number;
+    chunkNumber: number;
+}
 interface IPacket {
     type: Int8;
     counter: Int16;
@@ -12,6 +18,7 @@ interface IPacket {
     sizeInBits: number;
     size: Int16;
     data?: Buffer;
+    fragmentInfo?: FragmentInfo;
 }
 
 export type Packet = IPacket | null;
@@ -95,6 +102,11 @@ export enum ServerState {
     InGame,
 }
 
+export const fragmentedPackets: Map<number, Map<number, Packet>> = new Map<
+    number,
+    Map<number, Packet>
+>();
+
 export const parseHeader = (header: Buffer): Packet => {
     if (header.length !== 5) {
         debug(`unknown header: ${header}`);
@@ -127,6 +139,64 @@ export const createHeader = (packet: Packet): Buffer => {
     return header;
 };
 
+const parseFragmentData = (
+    fragment: Buffer,
+): { dataOffset: number; fragmentInfo: FragmentInfo } => {
+    const getNextValue = () => {
+        let num1 = 0;
+        let num2 = 0;
+        let result = -1;
+
+        while (true) {
+            let num3 = fragment[ptr++];
+            num1 |= (num3 & 0x7f) << (num2 & 0x1f);
+            num2 += 7;
+            if ((num3 & 0x80) == 0) {
+                result = num1;
+                break;
+            }
+        }
+
+        return result;
+    };
+    let ptr = 0;
+    let group = getNextValue();
+    let totalBits = getNextValue();
+    let chunkByteSize = getNextValue();
+    let chunkNumber = getNextValue();
+
+    return {
+        dataOffset: ptr,
+        fragmentInfo: {
+            group,
+            totalBits,
+            chunkByteSize,
+            chunkNumber,
+        },
+    };
+};
+
+export const getDataFromFragments = (packet: Packet) => {
+    if (!packet) {
+        return;
+    }
+    let data = packet.data!;
+    if (packet.fragment && packet.fragmentInfo) {
+        if (packet.fragmentInfo.chunkNumber !== 0) {
+            return;
+        }
+        const packets = fragmentedPackets.get(packet.fragmentInfo.group);
+        if (packets) {
+            for (const [_chunkNumber, packet] of packets) {
+                if (packet?.data) {
+                    data = Buffer.concat([data, packet.data]);
+                }
+            }
+        }
+    }
+    return data;
+};
+
 let packetCount = 0;
 export const splitPackets = (packet: Buffer): Packet[] => {
     const packetBuffer = Buffer.from(packet);
@@ -145,23 +215,29 @@ export const splitPackets = (packet: Buffer): Packet[] => {
         }
         let data = packetBuffer.subarray(offset, offset + basePacket.size);
         offset += basePacket.size;
+
+        if (basePacket.fragment) {
+            const { dataOffset, fragmentInfo } = parseFragmentData(data);
+            data = data.subarray(dataOffset);
+            basePacket.fragmentInfo = fragmentInfo;
+        }
         basePacket.data = data;
         packets.push(basePacket);
-        let s = '';
-        for (const c of header) {
-            s += c.toString(16).padStart(2, '0') + ' ';
-        }
-        s += '\n';
-        let count = 0;
-        for (const c of data) {
-            s += c.toString(16).padStart(2, '0') + ' ';
-            count++;
-            if (count % 16 === 0) {
-                s += '\n';
-            }
-        }
         packetCount++;
         if (false) {
+            let s = '';
+            for (const c of header) {
+                s += c.toString(16).padStart(2, '0') + ' ';
+            }
+            s += '\n';
+            let count = 0;
+            for (const c of data) {
+                s += c.toString(16).padStart(2, '0') + ' ';
+                count++;
+                if (count % 16 === 0) {
+                    s += '\n';
+                }
+            }
             writeFile(
                 `${process.cwd()}/output/${packetCount}-${basePacket?.counter}-${basePacket?.type.toString(16).padStart(2, '0')}`,
                 s,

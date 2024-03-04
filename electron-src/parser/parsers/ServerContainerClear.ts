@@ -1,4 +1,4 @@
-import { PacketCommand } from '../packet';
+import { PacketCommand, getDataFromFragments } from '../packet';
 import { debug } from '../../sendMessage';
 import { PacketParser } from '.';
 import { inventory } from './ServerContainerContent';
@@ -8,10 +8,14 @@ const parser: PacketParser = (packets, _rinfo): void => {
         const msgPackets = packets.filter((packet) => packet?.type === 0x44);
         for (const packet of msgPackets) {
             if (packet?.data) {
-                const dataType = packet.data.readUint8();
+                const data = getDataFromFragments(packet);
+                if (!data) {
+                    return;
+                }
+                const dataType = data.readUint8();
                 if (dataType === PacketCommand.ServerContainerClear) {
-                    const type = packet.data.readUInt8(2);
-                    const slot = packet.data.readUInt8(3);
+                    const type = data.readUInt8(2);
+                    const slot = data.readUInt8(3);
                     const container = inventory.containers.get(type);
                     if (container) {
                         container.items = container.items.filter(

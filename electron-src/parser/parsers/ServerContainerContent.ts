@@ -1,4 +1,4 @@
-import { PacketCommand } from '../packet';
+import { PacketCommand, getDataFromFragments } from '../packet';
 import { debug } from '../../sendMessage';
 import { PacketParser } from '.';
 
@@ -101,26 +101,35 @@ const parser: PacketParser = (packets, _rinfo): void => {
         const msgPackets = packets.filter((packet) => packet?.type === 0x44);
         for (const packet of msgPackets) {
             if (packet?.data) {
-                const dataType = packet.data.readUint8();
+                const data = getDataFromFragments(packet);
+                if (!data) {
+                    return;
+                }
+                const dataType = data.readUint8();
                 if (dataType === PacketCommand.ServerContainerContent) {
-                    const type = packet.data.readUInt8(2);
-                    const size = packet.data.readUInt8(3);
+                    const type = data.readUInt8(2);
+                    const size = data.readUInt8(3);
                     const items = [];
-                    for (let idx = 0; idx < size; idx++) {
-                        let offsetModifier2 = Math.floor(idx / 8);
-                        let offset = idx * 17;
-                        const item = parseItem(
-                            packet.data.slice(
-                                5 + offset + offsetModifier + offsetModifier2,
-                                5 +
-                                    offset +
-                                    offsetModifier +
-                                    offsetModifier2 +
-                                    20,
-                            ),
-                            idx,
-                        );
-                        items.push(item);
+                    if (size) {
+                        for (let idx = 0; idx < size; idx++) {
+                            let offsetModifier2 = Math.floor(idx / 8);
+                            let offset = idx * 17;
+                            const item = parseItem(
+                                data.slice(
+                                    5 +
+                                        offset +
+                                        offsetModifier +
+                                        offsetModifier2,
+                                    5 +
+                                        offset +
+                                        offsetModifier +
+                                        offsetModifier2 +
+                                        20,
+                                ),
+                                idx,
+                            );
+                            items.push(item);
+                        }
                     }
                     inventory.containers.set(type, {
                         type,

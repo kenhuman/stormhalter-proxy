@@ -11,6 +11,7 @@ import ServerContainerContent from './ServerContainerContent';
 import ServerContainerClear from './ServerContainerClear';
 import ServerContainerUpdate from './ServerContainerUpdate';
 import ServerRoundUpdate from './ServerRoundUpdate';
+import ServerContainerOpen from './ServerContainerOpen';
 
 export type PacketParser = (packets: Packet[], rinfo: dgram.RemoteInfo) => void;
 
@@ -25,6 +26,7 @@ const parsers = [
     ServerContainerClear,
     ServerContainerUpdate,
     ServerRoundUpdate,
+    ServerContainerOpen,
 ];
 
 export default parsers;
