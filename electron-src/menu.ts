@@ -1,6 +1,7 @@
 import { Menu, MenuItem, MenuItemConstructorOptions } from 'electron';
 import { setOverlayActive } from './overlayServer';
 import { store } from './store';
+import { setShortcutsActive } from './globalShortcuts';
 
 const template: Array<MenuItemConstructorOptions | MenuItem> = [
     {
@@ -33,6 +34,7 @@ const template: Array<MenuItemConstructorOptions | MenuItem> = [
                 checked: store.get('shortcuts.isActive'),
                 click: (e) => {
                     store.set('shortcuts.isactive', e.checked);
+                    setShortcutsActive(e.checked);
                 },
             },
         ],
