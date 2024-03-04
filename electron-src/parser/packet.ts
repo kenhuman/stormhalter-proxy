@@ -1,7 +1,7 @@
 import { Int8, Int16 } from './types';
 import { debug } from '../sendMessage';
 import { getProxy } from '..';
-import { getAddress, getCoreClr, writeMemory } from '../memory';
+import { getAddress, getCoreClr, readMemory, writeMemory } from '../memory';
 import memory from 'memoryjs';
 import { writeFile } from 'fs/promises';
 
@@ -186,19 +186,18 @@ export const sendPacket = (packets: Packet[]): void => {
     if (!packets) {
         return;
     }
-    const proxy = getProxy();
-    let nextCount = proxy.outgoingCount;
+    const baseAddress = getCoreClr().modBaseAddr;
+    const networkBase = getAddress(
+        baseAddress,
+        [0x004a2620, 0x0, 0x1e0, 0xf8, 0x20, 0x20, 0x228],
+    );
+    let nextCount = readMemory(networkBase, 0x38, memory.INT) - 1;
     for (const packet of packets) {
         if (packet) {
             nextCount++;
             packet.counter = nextCount;
         }
     }
-    const baseAddress = getCoreClr().modBaseAddr;
-    const networkBase = getAddress(
-        baseAddress,
-        [0x004a2620, 0x0, 0x1e0, 0xf8, 0x20, 0x20, 0x228],
-    );
     writeMemory(networkBase, 0x30, nextCount + 1, memory.INT);
     writeMemory(networkBase, 0x38, nextCount + 1, memory.INT);
     const message = combinePackets(packets);
@@ -209,5 +208,4 @@ export const sendPacket = (packets: Packet[]): void => {
         udpProxy.remoteAddress,
         udpProxy.remotePort,
     );
-    proxy.outgoingCount = nextCount;
 };

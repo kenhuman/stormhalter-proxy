@@ -14,9 +14,6 @@ export default class Proxy {
     private parsers: PacketParser[] = [];
     private transformers: PacketTransformer[] = [];
 
-    public outgoingCount = 0;
-    public incomingCount = 0;
-
     constructor(options: UdpProxyOptions) {
         this.options = options;
         this.proxy = new UdpProxy(this.options);
@@ -50,10 +47,6 @@ export default class Proxy {
                 for (const parser of this.parsers) {
                     parser(packets, rinfo);
                 }
-                const lastPacket = packets[packets.length - 1];
-                if (lastPacket) {
-                    this.incomingCount = lastPacket.counter;
-                }
             } catch (error) {
                 this.proxy.emit('error', error);
             } finally {
@@ -69,12 +62,6 @@ export default class Proxy {
                 let packets = splitPackets(msg);
                 for (const transformer of this.transformers) {
                     packets = transformer(packets, rinfo);
-                }
-                const lastPacket = packets[packets.length - 1];
-                if (lastPacket) {
-                    if (lastPacket.counter > this.outgoingCount) {
-                        this.outgoingCount = lastPacket.counter;
-                    }
                 }
                 msg = combinePackets(packets);
             } catch (error) {

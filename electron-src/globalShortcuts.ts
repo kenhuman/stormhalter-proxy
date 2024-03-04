@@ -70,6 +70,26 @@ const griffinBoots = async () => {
     addToQueue([packet]);
 };
 
+const zeroMove = () => {
+    if (!checkActiveWindow()) {
+        return;
+    }
+
+    const packet: Packet = {
+        type: 0x44,
+        counter: 0,
+        fragment: false,
+        size: 0,
+        sizeInBits: 0,
+    };
+
+    packet.data = Buffer.from([0x28, 0x00, 0x01, 0x05, 0x80, 0x00, 0x80, 0x00]);
+
+    packet.sizeInBits = packet.data.length * 8;
+
+    addToQueue([packet]);
+};
+
 const swapBoots = async () => {
     if (!checkActiveWindow()) {
         return;
@@ -181,6 +201,7 @@ export const registerGlobalShortcuts = () => {
     }
     globalShortcut.register('Alt+X', griffinBoots);
     globalShortcut.register('Alt+C', swapBoots);
+    globalShortcut.register('Alt+V', zeroMove);
 };
 
 export const unregisterGlobalShortcuts = () => {
