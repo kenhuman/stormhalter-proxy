@@ -3,10 +3,18 @@ import { PacketParser } from '..';
 import ExperienceParser from './ExpParser';
 import { debug } from '../../../sendMessage';
 import { sendOverlayMessage } from '../../../overlayServer';
+import { TypedEventEmitter } from '../TypedEventEmitter';
 
 type ParseFunction = (data: string[]) => void;
 
 export const expParser = new ExperienceParser();
+
+type ServerLocalizedCommunicationMessageEventTypes = {
+    onMessage: [type: number, args: string[]];
+};
+
+export const ServerLocalizedCommunicationMessageEventBroker =
+    new TypedEventEmitter<ServerLocalizedCommunicationMessageEventTypes>();
 
 const parser: PacketParser = (packets, _rinfo): void => {
     try {
@@ -18,10 +26,16 @@ const parser: PacketParser = (packets, _rinfo): void => {
                     dataType ===
                     PacketCommand.ServerLocalizedCommunicationMessage
                 ) {
-                    const idx = packet.data.readUInt32LE(4);
-                    const variableCount = packet.data.readUInt8(8);
+                    let offset = 0;
+                    const isBatch = packet.data.readUInt8(3);
+                    if (isBatch) {
+                        offset = 1;
+                    }
+                    // const multiplier = packet.data.readUInt8(4 + offset);
+                    const idx = packet.data.readUInt32LE(5 + offset);
+                    const variableCount = packet.data.readUInt8(9 + offset);
                     const variables: string[] = [];
-                    let offset = 8;
+                    offset = 9 + offset;
                     for (let i = 0; i < variableCount; i++) {
                         offset++;
                         const variableLength = packet.data.readUInt8(offset);
@@ -34,6 +48,11 @@ const parser: PacketParser = (packets, _rinfo): void => {
                         variables.push(buf);
                         offset += variableLength;
                     }
+                    ServerLocalizedCommunicationMessageEventBroker.emit(
+                        'onMessage',
+                        idx,
+                        variables,
+                    );
                     messageMap.get(idx)?.(variables);
                 }
             }
@@ -79,4 +98,19 @@ const displayNeutralizeOverlay = () => {
 messageMap.set(6300303, displayNeutralizeOverlay);
 messageMap.set(6300304, displayNeutralizeOverlay);
 
+const displayFumbledOverlay = () => {
+    sendOverlayMessage('Fumbled!', {
+        key: 'fumbled',
+        x: 600,
+        y: 265,
+        red: 0,
+        green: 0,
+        blue: 0,
+        alpha: 255,
+        duration: 2000,
+        fontSize: 50,
+        fontName: 'Arial',
+    });
+};
+messageMap.set(6300018, displayFumbledOverlay);
 export default parser;

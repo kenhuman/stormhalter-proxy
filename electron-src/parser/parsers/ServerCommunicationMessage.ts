@@ -30,7 +30,7 @@ const parser: PacketParser = (packets, _rinfo): void => {
                     for (const pf of parseFunctions) {
                         pf(message.join(''));
                     }
-                    debug(`${message}`);
+                    // debug(`${message}`);
                 }
             }
         }
