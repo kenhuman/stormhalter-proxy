@@ -7,7 +7,7 @@
         "email": "ken@kenhuman.com"
     },
     "name": "stormhalter-proxy",
-    "version": "2.0.1",
+    "version": "2.0.2",
     "scripts": {
         "clean": "rimraf dist main renderer/out renderer/.next",
         "dev": "npm run build-electron && electron .",
