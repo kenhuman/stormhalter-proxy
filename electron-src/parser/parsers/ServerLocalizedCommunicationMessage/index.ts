@@ -99,6 +99,7 @@ messageMap.set(6300303, displayNeutralizeOverlay);
 messageMap.set(6300304, displayNeutralizeOverlay);
 
 const displayFumbledOverlay = () => {
+    debug('Fumbled!');
     sendOverlayMessage('Fumbled!', {
         key: 'fumbled',
         x: 600,
@@ -112,5 +113,8 @@ const displayFumbledOverlay = () => {
         fontName: 'Arial',
     });
 };
+messageMap.set(6300015, displayFumbledOverlay);
+messageMap.set(6300016, displayFumbledOverlay);
+messageMap.set(6300017, displayFumbledOverlay);
 messageMap.set(6300018, displayFumbledOverlay);
 export default parser;
