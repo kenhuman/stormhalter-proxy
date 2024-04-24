@@ -186,7 +186,9 @@ export const getDataFromFragments = (packet: Packet) => {
             return;
         }
         const packets = fragmentedPackets.get(packet.fragmentInfo.group);
+        debug(JSON.stringify(packet.fragmentInfo));
         if (packets) {
+            debug(`fragments: ${packets?.values.length}`);
             for (const [_chunkNumber, packet] of packets) {
                 if (packet?.data) {
                     data = Buffer.concat([data, packet.data]);
@@ -219,9 +221,20 @@ export const splitPackets = (packet: Buffer): Packet[] => {
         if (basePacket.fragment) {
             const { dataOffset, fragmentInfo } = parseFragmentData(data);
             data = data.subarray(dataOffset);
+            basePacket.data = data;
             basePacket.fragmentInfo = fragmentInfo;
+            if (!fragmentedPackets.has(fragmentInfo.group)) {
+                fragmentedPackets.set(
+                    fragmentInfo.group,
+                    new Map<number, Packet>(),
+                );
+            }
+            fragmentedPackets
+                .get(fragmentInfo.group)
+                ?.set(fragmentInfo.chunkNumber, basePacket);
+        } else {
+            basePacket.data = data;
         }
-        basePacket.data = data;
         packets.push(basePacket);
         packetCount++;
         if (false) {

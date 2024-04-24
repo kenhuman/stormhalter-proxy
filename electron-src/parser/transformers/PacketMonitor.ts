@@ -7,9 +7,10 @@ const parser: PacketTransformer = (packets, _rinfo): Packet[] => {
     for (const packet of msgPackets) {
         if (packet?.data) {
             const dataType = packet.data.readUint8();
-            const packetTypeName = Object.entries(PacketCommand).find(
-                ([_, v]) => v === dataType,
-            )![0];
+            const packetTypeName =
+                Object.entries(PacketCommand).find(
+                    ([_, v]) => v === dataType,
+                )?.[0] || dataType;
             sendMessage(
                 'outgoingPacket',
                 JSON.stringify({
