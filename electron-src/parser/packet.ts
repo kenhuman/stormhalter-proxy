@@ -180,21 +180,25 @@ export const getDataFromFragments = (packet: Packet) => {
     if (!packet) {
         return;
     }
-    let data = packet.data!;
+    let data = null;
     if (packet.fragment && packet.fragmentInfo) {
-        if (packet.fragmentInfo.chunkNumber !== 0) {
-            return;
-        }
         const packets = fragmentedPackets.get(packet.fragmentInfo.group);
-        debug(JSON.stringify(packet.fragmentInfo));
         if (packets) {
-            debug(`fragments: ${packets?.values.length}`);
+            let totalReceived = 0;
             for (const [_chunkNumber, packet] of packets) {
+                totalReceived += packet?.sizeInBits ?? 0;
                 if (packet?.data) {
-                    data = Buffer.concat([data, packet.data]);
+                    data = data
+                        ? Buffer.concat([data, packet.data])
+                        : packet.data;
                 }
             }
+            if (totalReceived < packet.fragmentInfo.totalBits) {
+                return;
+            }
         }
+    } else {
+        data = packet.data;
     }
     return data;
 };
