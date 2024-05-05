@@ -282,7 +282,7 @@ export const sendPacket = (packets: Packet[]): void => {
     const baseAddress = getCoreClr().modBaseAddr;
     const networkBase = getAddress(
         baseAddress,
-        [0x004a2620, 0x0, 0x1e0, 0xf8, 0x20, 0x20, 0x228],
+        [0x004a24c8, 0x0, 0x1d0, 0xf8, 0x20, 0x20, 0x228],
     );
     let nextCount = readMemory(networkBase, 0x38, memory.INT) - 1;
     for (const packet of packets) {
