@@ -1,4 +1,4 @@
-import { Packet } from './parser/packet';
+import { Packet, sendPacket } from './parser/packet';
 import { inventory } from './parser/parsers/ServerContainerContent';
 import { addToQueue } from './parser/parsers/ServerRoundUpdate';
 import { debug } from './sendMessage';
@@ -63,9 +63,16 @@ export const addIpcListeners = () => {
         addToQueue([packet2]);
     });
 
+    let searching = false;
     ipcMain.on('drakeTrapSearch', (_event, ...args) => {
         const startId = args[0][0];
-        debug(startId);
+        if(startId === 0) {
+            searching = false;
+        } else {
+            searching = true;
+        }
+        let currentId = startId;
+        // debug(startId);
 
         const ServerCommunicationMessageHandler = (message: string) => {
             if (message === 'No object with that serial was found.') {
@@ -74,15 +81,34 @@ export const addIpcListeners = () => {
                     'onMessage',
                     ServerCommunicationMessageHandler,
                 );
+                ServerGumpShowEventBroker.off('onMessage', ServerGumpShowHandler);
             }
         };
 
-        const ServerGumpShowHandler = (message: any) => {
+        const ServerGumpShowHandler = (message: any, id: number) => {
+            sendPropsClose(id);
             ServerGumpShowEventBroker.off('onMessage', ServerGumpShowHandler);
-            debug(JSON.stringify(message));
+            // debug(JSON.stringify(message));
+            const data = message.Layout.Gump.Content.Canvas.Children.ScrollViewer.Content.StackPanel.Children.StackPanel;
+            // debug(JSON.stringify(data));
+            const body = data.find((e: { Children: { TextBlock: [{ Text: string; }]; }; }) => e.Children.TextBlock[0].Text === 'Body');
+            // debug(JSON.stringify(body));
+            if(body?.Children.TextBlock[1] === 497) {
+                debug('we found it!');
+            } else {
+                currentId++;
+                ServerCommunicationMessageEventBroker.off('onMessage', ServerCommunicationMessageHandler);
+                setTimeout(() => {
+                    sendPropsRequest(currentId);
+                }, 50);
+            }
         };
 
         const sendPropsRequest = (id: number) => {
+            debug(`${id}`);
+            if(!searching) {
+                return;
+            }
             const packetData = new NodeLidgren();
             packetData.writeInt16(0x96);
             packetData.writeBoolean(true);
@@ -109,8 +135,31 @@ export const addIpcListeners = () => {
             );
             ServerGumpShowEventBroker.on('onMessage', ServerGumpShowHandler);
 
-            addToQueue([propsPacket]);
+            sendPacket([propsPacket]);
         };
+
+        const sendPropsClose = (id: number) => {
+            const packetData = new NodeLidgren();
+            packetData.writeInt16(0xd4);
+            packetData.writeInt32(id);
+            packetData.writeInt16(400);
+            packetData.writeInt16(400);
+
+            const packet: Packet = {
+                type: 0x44,
+                counter: 0,
+                fragment: false,
+                size: 0,
+                sizeInBits: 0,
+            };
+        
+            packet.data = Buffer.from(packetData.getData());
+        
+            packet.sizeInBits = packet.data.length * 8;
+            packetData.destroy();
+        
+            sendPacket([packet]);
+        }
 
         sendPropsRequest(startId);
     });

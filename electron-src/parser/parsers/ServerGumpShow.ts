@@ -6,7 +6,7 @@ import { getDataFromFragments, PacketCommand } from '../packet';
 import { TypedEventEmitter } from './TypedEventEmitter';
 
 type ServerGumpShowEventTypes = {
-    onMessage: [message: any];
+    onMessage: [message: any, id: number];
 };
 
 export const ServerGumpShowEventBroker =
@@ -24,21 +24,21 @@ const parser: PacketParser = (packets, _rinfo): void => {
                 const dataType = data.readUint8();
                 if (dataType === PacketCommand.ServerGumpShow) {
                     const packetData = new NodeLidgren(data.toString('hex'));
-                    const command = packetData.readInt16(); // command
-                    debug(command.toString(16));
+                    packetData.readInt16(); // command
+                    // debug(command.toString(16));
                     const serial = packetData.readInt32(); // serial
-                    debug(serial.toString(16));
-                    const overlay = packetData.readBoolean(); // overlay
-                    debug(`${overlay}`);
+                    // debug(serial.toString(16));
+                    packetData.readBoolean(); // overlay
+                    // debug(`${overlay}`);
                     const size = packetData.readInt32();
-                    debug(size.toString());
+                    // debug(size.toString());
                     const compressedData = packetData.readBytes(size);
                     const decompressedData =
                         packetData.decompress(compressedData);
-                    debug(decompressedData);
+                    // debug(decompressedData);
                     const parser = new XMLParser();
                     const dataObj = parser.parse(decompressedData);
-                    ServerGumpShowEventBroker.emit('onMessage', dataObj);
+                    ServerGumpShowEventBroker.emit('onMessage', dataObj, serial);
                 }
             }
         }
