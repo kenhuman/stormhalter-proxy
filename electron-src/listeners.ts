@@ -88,16 +88,30 @@ export const addIpcListeners = () => {
         const ServerGumpShowHandler = (message: any, id: number) => {
             sendPropsClose(id);
             ServerGumpShowEventBroker.off('onMessage', ServerGumpShowHandler);
-            // debug(JSON.stringify(message));
-            const data = message.Layout.Gump.Content.Canvas.Children.ScrollViewer.Content.StackPanel.Children.StackPanel;
-            // debug(JSON.stringify(data));
-            const body = data.find((e: { Children: { TextBlock: [{ Text: string; }]; }; }) => e.Children.TextBlock[0].Text === 'Body');
-            // debug(JSON.stringify(body));
-            if(body?.Children.TextBlock[1] === 497) {
-                debug('we found it!');
+
+            const getValue = (key: string) => {
+                const data =
+                    message.Layout.Gump.Content.Canvas.Children.ScrollViewer
+                        .Content.StackPanel.Children.StackPanel;
+                const element = data.find(
+                    (e: { Children: { TextBlock: [{ Text: string }] } }) =>
+                        e.Children.TextBlock[0].Text === key,
+                );
+                return element?.Children.TextBlock[1].Text;
+            };
+
+            const body = getValue('Body');
+            const location = getValue('Location');
+            const health = getValue('Health');
+
+            if (body === 497 && health === 5 && location.match(/\[3\]/g)) {
+                debug('its a trap!');
             } else {
                 currentId++;
-                ServerCommunicationMessageEventBroker.off('onMessage', ServerCommunicationMessageHandler);
+                ServerCommunicationMessageEventBroker.off(
+                    'onMessage',
+                    ServerCommunicationMessageHandler,
+                );
                 setTimeout(() => {
                     sendPropsRequest(currentId);
                 }, 50);
