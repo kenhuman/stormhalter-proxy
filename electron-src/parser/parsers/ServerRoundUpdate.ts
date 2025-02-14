@@ -21,7 +21,7 @@ const parser: PacketParser = (packets, _rinfo): void => {
                 if (!data) {
                     return;
                 }
-                const dataType = data.readUint8();
+                const dataType = data.readUint16LE();
                 if (dataType === PacketCommand.ServerRoundUpdate) {
                     roundWaiting = !!!(data.readUInt8(2) & 0x1);
                     sendTriggered = false;

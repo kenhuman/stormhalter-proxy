@@ -17,6 +17,9 @@ dependencies:
   electron-store:
     specifier: ^8.1.0
     version: 8.1.0
+  fast-xml-parser:
+    specifier: ^4.3.6
+    version: 4.3.6
   memoryjs:
     specifier: ^3.5.1
     version: 3.5.1(eslint-plugin-import@2.29.1)
@@ -26,6 +29,9 @@ dependencies:
   node-active-window:
     specifier: github:kenhuman/node-active-window
     version: github.com/kenhuman/node-active-window/d0a55772496e0d50261ce344b3bb394c004d7254
+  node-api-dotnet:
+    specifier: ^0.7.7
+    version: 0.7.7
   react:
     specifier: ^18.2.0
     version: 18.2.0
@@ -1724,6 +1730,13 @@ packages:
     resolution: {integrity: sha512-DCXu6Ifhqcks7TZKY3Hxp3y6qphY5SJZmrWMDrKcERSOXWQdMhU9Ig/PYrzyw/ul9jOIyh0N4M0tbC5hodg8dw==}
     dev: false
 
+  /fast-xml-parser@4.3.6:
+    resolution: {integrity: sha512-M2SovcRxD4+vC493Uc2GZVcZaj66CCJhWurC4viynVSTvrpErCShNcDz1lAho6n9REQKvL/ll4A4/fw6Y9z8nw==}
+    hasBin: true
+    dependencies:
+      strnum: 1.0.5
+    dev: false
+
   /fastparse@1.1.2:
     resolution: {integrity: sha512-483XLLxTVIwWK3QTrMGRqUfUpoOs/0hbQrl2oz4J0pAcm3A3bu84wxTFqGqkJzewCLdME38xJLJAxBABfQT8sQ==}
     dev: false
@@ -2659,6 +2672,10 @@ packages:
     engines: {node: ^16 || ^18 || >= 20}
     dev: false
 
+  /node-api-dotnet@0.7.7:
+    resolution: {integrity: sha512-WSOQLI/Yzp3BxJnC7FVD2SrLzpi5YTCA/LhSgtPBoVQoqNaPttZ0YT7NehGfWOlLQDPwCwSEJlgsoZiXutwLnA==}
+    dev: false
+
   /node-releases@2.0.14:
     resolution: {integrity: sha512-y10wOWt8yZpqXmOgRo77WaHEmhYQYGNA6y421PKsKYWEK8aW+cqAphborZDhqfyKrbZEN92CN1X2KbafY2s7Yw==}
     dev: true
@@ -3346,6 +3363,10 @@ packages:
   /strip-json-comments@3.1.1:
     resolution: {integrity: sha512-6fPc+R4ihwqP6N/aIv2f1gMH8lOVtWQHoqC4yK6oSDVVocumAsfCqjkXnqiYMhmMwS/mEHLp7Vehlt3ql6lEig==}
     engines: {node: '>=8'}
+    dev: false
+
+  /strnum@1.0.5:
+    resolution: {integrity: sha512-J8bbNyKKXl5qYcR36TIO8W3mVGVHrmmxsd5PAItGkmyzwJvybiw2IVq5nqd0i4LSNSkB/sx9VHllbfFdr9k1JA==}
     dev: false
 
   /styled-jsx@5.1.1(react@18.2.0):

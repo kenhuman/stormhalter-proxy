@@ -63,7 +63,9 @@ export default class Proxy {
                 for (const transformer of this.transformers) {
                     packets = transformer(packets, rinfo);
                 }
-                msg = combinePackets(packets);
+                if (false) {
+                    msg = combinePackets(packets);
+                }
             } catch (error) {
                 this.proxy.emit('error', error);
             } finally {

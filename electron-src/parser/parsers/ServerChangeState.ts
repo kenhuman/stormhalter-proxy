@@ -13,7 +13,7 @@ const parser: PacketParser = (packets, _rinfo): void => {
                 if (!data) {
                     return;
                 }
-                const dataType = data.readUint8();
+                const dataType = data.readUint16LE();
                 if (dataType === PacketCommand.ServerChangeState) {
                     const state: ServerState = data.readUint8(2);
                     if (state === ServerState.InGame) {

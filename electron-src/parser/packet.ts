@@ -94,6 +94,9 @@ export enum PacketCommand {
     ServerGumpClose,
     ServerGumpUpdateProperty,
     ServerGumpUpdateLayout,
+    ClientLibraryRequest = 301,
+    ServerLibraryUpdate,
+    ClientLibraryAccess,
 }
 
 export enum ServerState {
@@ -180,19 +183,25 @@ export const getDataFromFragments = (packet: Packet) => {
     if (!packet) {
         return;
     }
-    let data = packet.data!;
+    let data = null;
     if (packet.fragment && packet.fragmentInfo) {
-        if (packet.fragmentInfo.chunkNumber !== 0) {
-            return;
-        }
         const packets = fragmentedPackets.get(packet.fragmentInfo.group);
         if (packets) {
+            let totalReceived = 0;
             for (const [_chunkNumber, packet] of packets) {
+                totalReceived += packet?.sizeInBits ?? 0;
                 if (packet?.data) {
-                    data = Buffer.concat([data, packet.data]);
+                    data = data
+                        ? Buffer.concat([data, packet.data])
+                        : packet.data;
                 }
             }
+            if (totalReceived < packet.fragmentInfo.totalBits) {
+                return;
+            }
         }
+    } else {
+        data = packet.data;
     }
     return data;
 };
@@ -219,9 +228,20 @@ export const splitPackets = (packet: Buffer): Packet[] => {
         if (basePacket.fragment) {
             const { dataOffset, fragmentInfo } = parseFragmentData(data);
             data = data.subarray(dataOffset);
+            basePacket.data = data;
             basePacket.fragmentInfo = fragmentInfo;
+            if (!fragmentedPackets.has(fragmentInfo.group)) {
+                fragmentedPackets.set(
+                    fragmentInfo.group,
+                    new Map<number, Packet>(),
+                );
+            }
+            fragmentedPackets
+                .get(fragmentInfo.group)
+                ?.set(fragmentInfo.chunkNumber, basePacket);
+        } else {
+            basePacket.data = data;
         }
-        basePacket.data = data;
         packets.push(basePacket);
         packetCount++;
         if (false) {

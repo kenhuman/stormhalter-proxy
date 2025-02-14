@@ -11,7 +11,7 @@ const parser: PacketParser = (packets, _rinfo): void => {
                 if (!data) {
                     return;
                 }
-                const dataType = data.readUint8();
+                const dataType = data.readUint16LE();
                 const packetTypeName =
                     Object.entries(PacketCommand).find(
                         ([_, v]) => v === dataType,

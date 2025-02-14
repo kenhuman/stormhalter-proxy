@@ -6,10 +6,11 @@ const parser: PacketTransformer = (packets, _rinfo): Packet[] => {
     const msgPackets = packets.filter((packet) => packet?.type === 0x44);
     for (const packet of msgPackets) {
         if (packet?.data) {
-            const dataType = packet.data.readUint8();
-            const packetTypeName = Object.entries(PacketCommand).find(
-                ([_, v]) => v === dataType,
-            )![0];
+            const dataType = packet.data.readUint16LE();
+            const packetTypeName =
+                Object.entries(PacketCommand).find(
+                    ([_, v]) => v === dataType,
+                )?.[0] || dataType;
             sendMessage(
                 'outgoingPacket',
                 JSON.stringify({

@@ -195,6 +195,105 @@ const swapBoots = async () => {
     addToQueue([pickupBeltedBoots, dropPortrait]);
 };
 
+const useBeltedItem = () => {
+    const interact: Packet = {
+        type: 0x44,
+        counter: 0,
+        fragment: false,
+        size: 0,
+        sizeInBits: 0,
+    };
+
+    interact.data = Buffer.from([
+        0x2b, 0x00, 0x03, 0x00, 0x00, 0x34, 0x80, 0x01, 0x80, 0x01,
+    ]);
+
+    interact.sizeInBits = interact.data.length * 8;
+
+    addToQueue([interact]);
+};
+
+const equipItem = () => {
+    const pickupLeftHand: Packet = {
+        type: 0x44,
+        counter: 0,
+        fragment: false,
+        size: 0,
+        sizeInBits: 0,
+    };
+
+    pickupLeftHand.data = Buffer.from([
+        0x60, 0x00, 0x04, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x80, 0x01, 0x80,
+        0x01,
+    ]);
+
+    pickupLeftHand.sizeInBits = pickupLeftHand.data.length * 8;
+
+    const pickupRecallRing: Packet = {
+        type: 0x44,
+        counter: 0,
+        fragment: false,
+        size: 0,
+        sizeInBits: 0,
+    };
+
+    pickupRecallRing.data = Buffer.from([
+        0x60, 0x00, 0x01, 0x07, 0x00, 0x01, 0x00, 0x00, 0x00, 0x80, 0x01, 0x80,
+        0x01,
+    ]);
+
+    pickupRecallRing.sizeInBits = pickupRecallRing.data.length * 8;
+
+    const dropRecallRing: Packet = {
+        type: 0x44,
+        counter: 0,
+        fragment: false,
+        size: 0,
+        sizeInBits: 0,
+    };
+
+    dropRecallRing.data = Buffer.from([
+        0x63, 0x00, 0x04, 0x01, 0x00, 0x80, 0x01, 0x80, 0x01,
+    ]);
+
+    dropRecallRing.sizeInBits = dropRecallRing.data.length * 8;
+
+    addToQueue([pickupRecallRing, pickupLeftHand, dropRecallRing]);
+};
+
+const portalWithCorpse = () => {
+    const pickupLeftHand: Packet = {
+        type: 0x44,
+        counter: 0,
+        fragment: false,
+        size: 0,
+        sizeInBits: 0,
+    };
+
+    pickupLeftHand.data = Buffer.from([
+        0x60, 0x00, 0x04, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x80, 0x01, 0x80,
+        0x01,
+    ]);
+
+    pickupLeftHand.sizeInBits = pickupLeftHand.data.length * 8;
+
+    const usePortal: Packet = {
+        type: 0x44,
+        counter: 0,
+        fragment: false,
+        size: 0,
+        sizeInBits: 0,
+    };
+
+    usePortal.data = Buffer.from([
+        0x29, 0x00, 0x03, 0x03, 0x25, 0x80, 0x01, 0x80, 0x01,
+    ]);
+
+    usePortal.sizeInBits = usePortal.data.length * 8;
+
+    addToQueue([pickupLeftHand, usePortal]);
+};
+
 export const registerGlobalShortcuts = () => {
     if (!isActive) {
         return;
@@ -202,6 +301,10 @@ export const registerGlobalShortcuts = () => {
     globalShortcut.register('Alt+X', griffinBoots);
     globalShortcut.register('Alt+C', swapBoots);
     globalShortcut.register('Alt+V', zeroMove);
+
+    globalShortcut.register('Alt+Q', useBeltedItem);
+    globalShortcut.register('Alt+W', equipItem);
+    globalShortcut.register('Alt+E', portalWithCorpse);
 };
 
 export const unregisterGlobalShortcuts = () => {

@@ -2,8 +2,16 @@ import { PacketParser } from '.';
 import { sendOverlayMessage } from '../../overlayServer';
 import { PacketCommand, getDataFromFragments } from '../packet';
 import { debug } from '../../sendMessage';
+import { TypedEventEmitter } from './TypedEventEmitter';
 
 type ParseFunction = (data: string) => void;
+
+type ServerCommunicationMessageEventTypes = {
+    onMessage: [message: string];
+};
+
+export const ServerCommunicationMessageEventBroker =
+    new TypedEventEmitter<ServerCommunicationMessageEventTypes>();
 
 const parser: PacketParser = (packets, _rinfo): void => {
     try {
@@ -14,7 +22,7 @@ const parser: PacketParser = (packets, _rinfo): void => {
                 if (!data) {
                     return;
                 }
-                const dataType = data.readUint8();
+                const dataType = data.readUint16LE();
                 if (dataType === PacketCommand.ServerCommunicationMessage) {
                     let msgData = data.subarray(7);
                     const message = [];
@@ -27,6 +35,12 @@ const parser: PacketParser = (packets, _rinfo): void => {
                             1 + msgData.length + 1,
                         );
                     } while (msgData.length);
+                    for (const msg of message) {
+                        ServerCommunicationMessageEventBroker.emit(
+                            'onMessage',
+                            msg,
+                        );
+                    }
                     for (const pf of parseFunctions) {
                         pf(message.join(''));
                     }
