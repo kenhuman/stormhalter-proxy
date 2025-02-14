@@ -66,7 +66,7 @@ export const addIpcListeners = () => {
     let searching = false;
     ipcMain.on('drakeTrapSearch', (_event, ...args) => {
         const startId = args[0][0];
-        if(startId === 0) {
+        if (startId === 0) {
             searching = false;
         } else {
             searching = true;
@@ -81,32 +81,52 @@ export const addIpcListeners = () => {
                     'onMessage',
                     ServerCommunicationMessageHandler,
                 );
-                ServerGumpShowEventBroker.off('onMessage', ServerGumpShowHandler);
+                ServerGumpShowEventBroker.off(
+                    'onMessage',
+                    ServerGumpShowHandler,
+                );
             }
         };
 
         const ServerGumpShowHandler = (message: any, id: number) => {
             sendPropsClose(id);
             ServerGumpShowEventBroker.off('onMessage', ServerGumpShowHandler);
-            // debug(JSON.stringify(message));
-            const data = message.Layout.Gump.Content.Canvas.Children.ScrollViewer.Content.StackPanel.Children.StackPanel;
-            // debug(JSON.stringify(data));
-            const body = data.find((e: { Children: { TextBlock: [{ Text: string; }]; }; }) => e.Children.TextBlock[0].Text === 'Body');
-            // debug(JSON.stringify(body));
-            if(body?.Children.TextBlock[1] === 497) {
+
+            const getValue = (key: string) => {
+                const data =
+                    message.Layout.Gump.Content.Canvas.Children.ScrollViewer
+                        .Content.StackPanel.Children.StackPanel;
+                const element = data.find(
+                    (e: { Children: { TextBlock: [{ Text: string }] } }) =>
+                        e.Children.TextBlock[0].Text === key,
+                );
+                return element?.Children.TextBlock[1].Text;
+            };
+
+            const body = getValue('Body');
+            const location = getValue('Location');
+            const health = getValue('Health');
+
+            if (body === 497 && health === 5 && location.match(/\[3\]/g)) {
                 debug('we found it!');
             } else {
                 currentId++;
-                ServerCommunicationMessageEventBroker.off('onMessage', ServerCommunicationMessageHandler);
+                ServerCommunicationMessageEventBroker.off(
+                    'onMessage',
+                    ServerCommunicationMessageHandler,
+                );
+                sendPropsRequest(currentId);
+                /*
                 setTimeout(() => {
                     sendPropsRequest(currentId);
                 }, 50);
+                */
             }
         };
 
         const sendPropsRequest = (id: number) => {
             debug(`${id}`);
-            if(!searching) {
+            if (!searching) {
                 return;
             }
             const packetData = new NodeLidgren();
@@ -152,14 +172,14 @@ export const addIpcListeners = () => {
                 size: 0,
                 sizeInBits: 0,
             };
-        
+
             packet.data = Buffer.from(packetData.getData());
-        
+
             packet.sizeInBits = packet.data.length * 8;
             packetData.destroy();
-        
+
             sendPacket([packet]);
-        }
+        };
 
         sendPropsRequest(startId);
     });

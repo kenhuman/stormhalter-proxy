@@ -12,7 +12,7 @@ const parser: PacketParser = (packets, _rinfo): void => {
                 if (!data) {
                     return;
                 }
-                const dataType = data.readUint8();
+                const dataType = data.readUint16LE();
                 if (dataType === PacketCommand.ServerEntityDeparting) {
                     const entityId = data.readUint32LE(2);
                     if (mobList.has(entityId)) {

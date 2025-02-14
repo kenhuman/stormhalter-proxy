@@ -47,7 +47,7 @@ const parser: PacketParser = (packets, _rinfo): void => {
                 if (!data) {
                     return;
                 }
-                const dataType = data.readUint8();
+                const dataType = data.readUint16LE();
                 if (dataType === PacketCommand.ServerEntityUpdate) {
                     const entityId = data.readUInt32LE(2);
                     const messageType = data.readUint16LE(6);

@@ -21,7 +21,7 @@ const parser: PacketParser = (packets, _rinfo): void => {
                 if (!data) {
                     return;
                 }
-                const dataType = data.readUint8();
+                const dataType = data.readUint16LE();
                 if (dataType === PacketCommand.ServerGumpShow) {
                     const packetData = new NodeLidgren(data.toString('hex'));
                     packetData.readInt16(); // command
@@ -38,7 +38,11 @@ const parser: PacketParser = (packets, _rinfo): void => {
                     // debug(decompressedData);
                     const parser = new XMLParser();
                     const dataObj = parser.parse(decompressedData);
-                    ServerGumpShowEventBroker.emit('onMessage', dataObj, serial);
+                    ServerGumpShowEventBroker.emit(
+                        'onMessage',
+                        dataObj,
+                        serial,
+                    );
                 }
             }
         }

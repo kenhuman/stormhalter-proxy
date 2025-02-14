@@ -12,7 +12,7 @@ const parser: PacketParser = (packets, _rinfo): void => {
                 if (!data) {
                     return;
                 }
-                const dataType = data.readUint8();
+                const dataType = data.readUint16LE();
                 if (dataType === PacketCommand.ServerContainerUpdate) {
                     const updateType = data.readUInt8(2);
                     const type = data.readUInt8(3);

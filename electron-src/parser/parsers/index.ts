@@ -16,7 +16,7 @@ import ServerGumpShow from './ServerGumpShow';
 
 export type PacketParser = (packets: Packet[], rinfo: dgram.RemoteInfo) => void;
 
-const parsers = [
+const parsers: PacketParser[] = [
     ServerChangeState,
     ServerLocalizedCommunicationMessage,
     PacketMonitor,

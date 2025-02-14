@@ -21,7 +21,7 @@ const parser: PacketParser = (packets, _rinfo): void => {
         const msgPackets = packets.filter((packet) => packet?.type === 0x44);
         for (const packet of msgPackets) {
             if (packet?.data) {
-                const dataType = packet.data.readUint8();
+                const dataType = packet.data.readUint16LE();
                 if (
                     dataType ===
                     PacketCommand.ServerLocalizedCommunicationMessage
